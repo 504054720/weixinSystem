@@ -1,0 +1,67 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="/static/js/jquery.min.js"></script>
+    <script src="/static/js/jquery.form.js"></script>
+    <script src="/static/js/json2.min.js"></script>
+    <script type="text/javascript">
+
+        $(function(){
+            $("#upload").click(function(){
+                $("#upload").attr("disabled","true");
+                var fileName = $("#file").val();
+                if (fileName == "") {
+                    alert("请选择上传文件！");
+                    $("#upload").removeAttr("disabled");
+                    return;
+                }
+                if (fileName.indexOf("\\") != -1){
+                    fileName = fileName.substring(fileName.lastIndexOf("\\") + 1);
+                }
+
+                var suffix = fileName.substring(fileName.lastIndexOf("."));
+                if (suffix != ".xls" && suffix != ".xlsx") {
+                    alert("请上传.xls或.xlsx格式的文件！");
+                    $("#upload").removeAttr("disabled");
+                    return;
+                }
+                $("#uploadForm").ajaxSubmit({
+                    type:"POST",
+                    url:"sendMessage",
+                    success:function(result){
+                        var res = JSON.parse(result);
+                        if (res.errCode == "0") {
+                            alert("发送工资条完成！");
+                        } else if (res.errCode == "-999") {
+                            alert("发送工资条异常！");
+                        } else if (res.errCode == "-1") {
+                            alert("企业微信通讯录为空，请添加企业成员！");
+                        } else {
+                            var message = "发送总数：" + res.totalCount + "\n"
+                                         + "失败总数：" + res.errCode + "\n"
+                                         + "失败信息：\n";
+                            for( var key in res.message) {
+                                message += "姓名：" + key + "  错误码：" + res.message[key] + "\n";
+                            }
+                            alert(message);
+                        }
+                        $("#upload").removeAttr("disabled");
+                        }
+                    });
+            });
+         });
+
+    </script>
+</head>
+<body>
+<form id = "uploadForm" action="sendMessage" method="post" enctype="multipart/form-data">
+    <input id = "file" name="file" type="file"/>
+    <!--<input type="submit" value="提交"/>-->
+    <input type="button" id="upload" value="发送工资条"/>
+</form>
+</body>
+
+</html>
