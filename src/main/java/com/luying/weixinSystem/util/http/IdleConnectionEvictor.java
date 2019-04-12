@@ -29,7 +29,6 @@ public class IdleConnectionEvictor extends Thread{
 				}
 			}
 		} catch (Exception e) {
-			// TODO: handle exception
 		}
 	}
 	

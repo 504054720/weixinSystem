@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,9 +6,15 @@
     <script src="/static/js/jquery.min.js"></script>
     <script src="/static/js/jquery.form.js"></script>
     <script src="/static/js/json2.min.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/static/css/index.css"/>
     <script type="text/javascript">
 
         $(function(){
+            //加载通讯录
+            loadAddressList();
+
             $("#upload").click(function(){
                 $("#upload").attr("disabled","true");
                 var fileName = $("#file").val();
@@ -33,14 +38,11 @@
                     url:"sendMessage",
                     success:function(result){
                         var res = JSON.parse(result);
-                        if (res.errCode == "0") {
-                            alert("发送工资条完成！");
-                        } else if (res.errCode == "-999") {
+                        if (res.errCode == "-999") {
                             alert("发送工资条异常！");
-                        } else if (res.errCode == "-1") {
-                            alert("企业微信通讯录为空，请添加企业成员！");
                         } else {
                             var message = "发送总数：" + res.totalCount + "\n"
+                                         + "成功总数：" + res.successCount + "\n"
                                          + "失败总数：" + res.errCode + "\n"
                                          + "失败信息：\n";
                             for( var key in res.message) {
@@ -52,16 +54,85 @@
                         }
                     });
             });
-         });
 
+            function loadAddressList(){
+                var url = "getAddressList/1";
+                $.get( url ,function(result,status){
+                    if (status != "success" ) {
+                        alert("获取通讯录异常！");
+                        return;
+                    }
+                    if (result == null || result == "") {
+                        alert("通讯录为空！");
+                        return;
+                    }
+                    var resultObj = JSON.parse(result);
+                    for ( var i in resultObj) {
+                        var trStr = "<tr>"
+                                         + "<td align='center'>"
+                                         + "<input type='checkbox' id = '"+resultObj[i].mobile+"' name='checkedInfos' value='"+ resultObj[i].mobile +"|" + resultObj[i].name + "|"+ resultObj[i].userid +"' class='gcs-checkbox'/>"
+                                         + "<label for='"+resultObj[i].mobile+"'></label>"
+                                         + "</td>"
+                                         + "<td>"+ resultObj[i].name +"</td>"
+                                         + "<td>"+ resultObj[i].mobile +"</td>"
+                                    + "</tr>";
+                        $("#addressList").append(trStr)
+                    }
+
+                });
+            }
+
+             //模糊查询
+            $("#search").bind("input propertychange",function(){
+                var serachVal = $("#search").val();
+                $.each($("input[name='checkedInfos']:not(:checked)"),function(){
+                    var currentVal = $(this).val();
+                    if (currentVal.match(serachVal)) {
+                        $(this).parents("tr").show();
+                    } else {
+                        $(this).attr("checked",false);
+                        $(this).parents("tr").hide();
+                    }
+                });
+            });
+         });
     </script>
 </head>
 <body>
-<form id = "uploadForm" action="sendMessage" method="post" enctype="multipart/form-data">
-    <input id = "file" name="file" type="file"/>
-    <!--<input type="submit" value="提交"/>-->
-    <input type="button" id="upload" value="发送工资条"/>
-</form>
+<div id="app">
+    <form id="uploadForm" action="sendMessage" method="post" enctype="multipart/form-data">
+
+        <table class="table table-striped">
+            <thead>
+            <tr>
+            <tr>
+                <td colspan="3" align="center"><h1>发送工资条</h1></td>
+            </tr>
+            <td align="center">
+                <input id="file" name="file" type="file" class="btn btn-default"/>
+                <!--<input type="submit" value="提交"/>-->
+            </td>
+            <td>
+                <input type="button" id="upload" value="发送工资条" class="btn btn-default"/>
+            </td>
+            <td>
+                <input type="text" id="search" placeholder="搜索条件。。。" value="" class="form-control"/>
+            </td>
+            </tr>
+            <tr>
+                <th align="center">
+                    <!--<input type='checkbox' id = "checkedAll" class='gcs-checkbox'/>-->
+                    <!--<label for="checkedAll"></label>-->
+                </th>
+                <th>姓名</th>
+                <th>手机号</th>
+            </tr>
+            </thead>
+            <tbody id="addressList">
+            </tbody>
+        </table>
+    </form>
+</div>
 </body>
 
 </html>

@@ -41,7 +41,8 @@ public class WeixinClient {
      */
     public List<Map<String,String>> getAddressList(String addressToken) throws Exception{
         //获取通讯录列表
-        String getAddressListUrl = "https://qyapi.weixin.qq.com/cgi-bin/user/simplelist?access_token="+addressToken+"&department_id=1&fetch_child=1";
+        //String getAddressListUrl = "https://qyapi.weixin.qq.com/cgi-bin/user/simplelist?access_token="+addressToken+"&department_id=1&fetch_child=1";
+        String getAddressListUrl = "https://qyapi.weixin.qq.com/cgi-bin/user/list?access_token="+addressToken+"&department_id=1&fetch_child=1";
         HttpResult result2 = httpService.doGet(getAddressListUrl);
         return (List<Map<String, String>>) JSON.parseObject(result2.getBody()).get("userlist");
     }

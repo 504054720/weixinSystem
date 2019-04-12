@@ -27,6 +27,10 @@ import java.util.*;
 @Service
 public class WeixinService {
     private static final Logger LOGGER = LoggerFactory.getLogger(WeixinService.class);
+    //通讯录与EXCEL匹配的对应的列（EXCEL）
+    private static final int CELLNUM = 1;
+    //通讯录与EXCEL匹配的对应的key(通讯录)
+    private static final String MAPKEY = "mobile";
     @Value("${weixin.corpid}")
     public String corpid;
     @Value("${weixin.address.corpsecret}")
@@ -38,7 +42,7 @@ public class WeixinService {
     @Autowired
     WeixinClient weixinClient;
 
-    public String sendMessage(MultipartFile file){
+    public String sendMessage(MultipartFile file,String[] checkedInfos){
         String result = "0";
         int errCode = 0;
         Map<String,Object> resultMap = new HashMap<String,Object>();
@@ -60,7 +64,21 @@ public class WeixinService {
             //获取通讯录token
             String addressToken = weixinClient.getToken(corpid,addressCorpsecret);
             //获取通讯录列表
-            List<Map<String,String>> addressList =  weixinClient.getAddressList(addressToken);
+            List<Map<String,String>> addressList = new ArrayList<Map<String, String>>();
+            if (checkedInfos == null) {
+                addressList = weixinClient.getAddressList(addressToken);
+            } else {
+
+                for (String oneInfo : checkedInfos) {
+                    Map<String,String> oneMap = new HashMap<String, String>();
+                    String[] oneInfoArray = oneInfo.split("\\|");
+                    oneMap.put("mobile",oneInfoArray[0]);
+                    oneMap.put("name",oneInfoArray[1]);
+                    oneMap.put("userid",oneInfoArray[2]);
+                    addressList.add(oneMap);
+                }
+            }
+
             if ( addressList == null ) {
                 errCode =  -1;
                 resultMap.put("errCode",errCode);
@@ -72,6 +90,8 @@ public class WeixinService {
 
             Map<String,String> errMap = new HashMap<String,String>();
             for(Map user : addressList){
+                LOGGER.info("userInfo：" + user.toString());
+                LOGGER.info("员工姓名：" + user.get("name") + " 员工ID：" + user.get("userid"));
                 //获取每个员工的Excel
                 File sendFile = this.creadExcelFile(workbook,user);
                 //上传每个员工的Excel获取media_id
@@ -79,7 +99,6 @@ public class WeixinService {
                 if("0".equals(resultUp.get("errcode").toString())){
                     Map<String,Object> contentMap = new HashMap<String, Object>();
                     contentMap.put("touser", user.get("userid"));
-                    //contentMap.put("touser", "CaoJunJing");
                     contentMap.put("agentid", myappAgentid);
                     //contentMap.put("msgtype", "text");
                     contentMap.put("msgtype", "file");
@@ -87,7 +106,7 @@ public class WeixinService {
                     cont.put("media_id",resultUp.get("media_id").toString());
                     contentMap.put("file", cont);
                     //发送员工工资条Excel
-                    result = weixinClient.sendMessage(sendMessageToken,contentMap);
+                    //result = weixinClient.sendMessage(sendMessageToken,contentMap);
                     if(!"0".equals(result)){
                         //异常数量
                         errCode++;
@@ -97,11 +116,11 @@ public class WeixinService {
                     }
                     //清理文件
                     sendFile.delete();
-
                 }
             }
             resultMap.put("errCode",Integer.toString(errCode));
             resultMap.put("totalCount",addressList.size());
+            resultMap.put("successCount",addressList.size() - errCode);
             resultMap.put("message",errMap);
             LOGGER.info("发送工资条成功！");
         } catch (Exception e) {
@@ -112,7 +131,7 @@ public class WeixinService {
     }
 
     /***
-     * 获取姓名与内容的行号关系MAP
+     * 获取员工信息（手机号）与内容的行号关系MAP
      * @param workbook
      * @return
      */
@@ -121,13 +140,13 @@ public class WeixinService {
 
         Map<String,List<Integer>> relationMap = new HashMap<String,List<Integer>>();
         for (Row row : sheet){
-            row.getCell(0).getStringCellValue();
+            String rowValue = row.getCell(CELLNUM).getStringCellValue();
             List<Integer> rowList = new ArrayList<>();
-            if(relationMap.get(row.getCell(0).getStringCellValue()) != null){
-                rowList = relationMap.get(row.getCell(0).getStringCellValue());
+            if(relationMap.get(rowValue) != null){
+                rowList = relationMap.get(rowValue);
             }
             rowList.add(row.getRowNum());
-            relationMap.put(row.getCell(0).getStringCellValue(),rowList);
+            relationMap.put(rowValue,rowList);
         }
         return relationMap;
     }
@@ -144,13 +163,13 @@ public class WeixinService {
         Map<String,List<Integer>> relationMap = this.getRelationMap(workbook);
         Sheet sheet = workbook.getSheetAt(0);
         Row headRow = sheet.getRow(0);
-        List<Integer> rowList = relationMap.get(user.get("name"));
+        List<Integer> rowList = relationMap.get(user.get(MAPKEY));
         Workbook perWorkbook = new XSSFWorkbook();
         Sheet perSheet = perWorkbook.createSheet();
 
         //身份证号	银行卡号	银行	开户行 宽度设置
-        if(headRow.getLastCellNum() >= 29){
-            for(int w = 26;w <=29 ;w++){
+        if(headRow.getLastCellNum() >= 30){
+            for(int w = 27;w <=30 ;w++){
                 perSheet.setColumnWidth(w,6000);
             }
         }
@@ -171,23 +190,35 @@ public class WeixinService {
                             newRow.createCell(j).setCellValue(contentRow.getCell(j).getNumericCellValue());
                         }
                     }
-
-
                 }
             }
         }
 
         Calendar calendar = Calendar.getInstance();
         StringBuilder perFileName = new StringBuilder();
-        perFileName.append(user.get("name"))
-                .append("_")
-                .append(calendar.get(Calendar.YEAR))
+       // perFileName.append(user.get("name"))
+        perFileName.append(calendar.get(Calendar.YEAR))
                 .append(calendar.get(Calendar.MONTH)+1)
                 .append(calendar.get(Calendar.DATE))
-                .append("_工资条.xlsx");
+                .append("_工资条_【测试数据请忽略】.xlsx");
         File perFile = new File(perFileName.toString());
         OutputStream outputStream = new FileOutputStream(perFile);
         perWorkbook.write(outputStream);
         return perFile;
+    }
+
+    /***
+     * 获取通讯录列表
+     * @return
+     */
+    public String getAddressList(){
+        try {
+            String addressToken = weixinClient.getToken(corpid,addressCorpsecret);
+            return JSON.toJSONString(weixinClient.getAddressList(addressToken));
+        }catch (Exception e){
+            LOGGER.info("Weixin_getAddressList_exception:" + e);
+            return "";
+        }
+
     }
 }

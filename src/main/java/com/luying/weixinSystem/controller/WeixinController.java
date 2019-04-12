@@ -14,7 +14,7 @@ public class WeixinController {
 
     @PostMapping("/sendMessage")
     @ResponseBody
-    public String sendMessage(@RequestPart("file") MultipartFile file){
+    public String sendMessage(@RequestPart("file") MultipartFile file,@RequestParam(required = false) String[] checkedInfos){
 
         if(file.isEmpty()){
             return "上传附件不能为空";
@@ -25,10 +25,16 @@ public class WeixinController {
             return  "请上传.xlsx或.xls类型文件";
 
         }
-        return weixinService.sendMessage(file);
+        return weixinService.sendMessage(file,checkedInfos);
     }
     @GetMapping("/index")
     public String index(){
         return "index";
+    }
+
+    @GetMapping("/getAddressList/{departmentId}")
+    @ResponseBody
+    public String getAddressList(@PathVariable String departmentId){
+        return weixinService.getAddressList();
     }
 }

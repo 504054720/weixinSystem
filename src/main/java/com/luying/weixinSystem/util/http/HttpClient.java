@@ -73,20 +73,17 @@ public class HttpClient {
 				
 				@Override
 				public X509Certificate[] getAcceptedIssuers() {
-					// TODO Auto-generated method stub
 					return new X509Certificate[0];
 				}
 				
 				@Override
 				public void checkServerTrusted(X509Certificate[] chain, String authType)
 						throws CertificateException {
-					// TODO Auto-generated method stub
 				}
 				
 				@Override
 				public void checkClientTrusted(X509Certificate[] chain, String authType)
 						throws CertificateException {
-					// TODO Auto-generated method stub
 				}
 			}}, new SecureRandom());
 			SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE);
@@ -107,8 +104,8 @@ public class HttpClient {
 		RequestConfig.Builder builder = RequestConfig.custom();
 		return builder.setConnectTimeout(connectionTimeout)
 				.setConnectionRequestTimeout(connectionRequestTimeout)
-				.setSocketTimeout(socketTimeout)
-				.setStaleConnectionCheckEnabled(staleConnectionCheckEnabled);
+				.setSocketTimeout(socketTimeout);
+				//.setStaleConnectionCheckEnabled(staleConnectionCheckEnabled);
 	}
 	/**
 	 * 使用builder构建一个requestConfig对象
