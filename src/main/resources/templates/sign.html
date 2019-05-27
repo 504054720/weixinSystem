@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>签到</title>
+    <script   src="/static/js/jquery.min.js"></script>
+    <script  src="http://res.wx.qq.com/open/js/jweixin-1.2.0.js"></script>
+    <script type="text/javascript">
+        var userId='';
+        var token='';
+        var code='' ;
+        //获取请求参数
+        function GetQueryString(name) {
+            var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+            var r = window.location.search.substr(1).match(reg);
+            if (r != null) return unescape(r[2]);
+            return null;
+        }
+        function getToken(code){
+                $.ajax({
+                    url:"/getAccessToken",
+                    type:"get",
+                    contentType: "application/json",
+                     success:function (re, status) {
+                         getUserId(re,code);
+                    }
+                })
+        }
+        function getUserId(token,code){
+            $.ajax({
+                url:"/getUserIdByCode",
+                type:"get",
+                data:{"token":token,"code":code},
+                success:function (re, status) {
+                     var j= $.parseJSON(re.toString()) ;
+                     if(j.errcode == '0'){
+                        userId= j.UserId;
+                        console.log(userId);
+                    }
+                }
+            })
+        }
+        $(function(){
+              code='JXsgXjnAihAs5paied6KkdaKjdZmaXRa7z4Ubhe9y_U' ;
+                    //GetQueryString("code");
+            if(code){
+                    getToken(code);
+            }
+        });
+    </script>
+</head>
+<body>
+hello
+
+</body>
+</html>

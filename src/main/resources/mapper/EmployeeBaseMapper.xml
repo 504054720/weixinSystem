@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.luying.weixinSystem.mapper.EmployeeBaseMapper" >
+    <select id="queryAll" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        SELECT t1.id,t1.name,t1.id_card,t1.mobile,t1.remark,t1.is_main_card,t2.name department,t1.role
+        FROM tb_employee_base t1 LEFT JOIN tb_department t2 ON t1.department = t2.id
+        <where>
+            <if test="department != '' and department != null">
+                t1.department = #{department}
+            </if>
+        </where>
+        order by mobile,remark
+    </select>
+    <select id="query" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        SELECT mobile,GROUP_CONCAT(id_card) idCards FROM `tb_employee_base` where mobile = #{mobile} GROUP BY mobile
+    </select>
+    <select id="queryForValidate" parameterType="java.util.HashMap" resultType="java.lang.Integer">
+        select count(*) from tb_employee_base where mobile = #{mobile} and id_card = #{idCard}
+    </select>
+    <insert id="insert" parameterType="java.util.HashMap" >
+        insert into tb_employee_base(id,name,id_card,mobile,is_main_card,department,role,remark,binding_state,create_time)
+        value(#{id},#{name},#{idCard},#{mobile},#{isMainCard},#{department},#{role},#{remark},#{bindingState},SYSDATE())
+    </insert>
+    <select id="queryBaseInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        SELECT
+        t1.openid,
+        t2.`name` employeeName,
+        t2.mobile,
+        t2.department departmentId,
+        t2.role,
+        t2.id,
+        t3.ruleid,
+        t4.name departmentName
+        FROM
+        tb_wx_open t1
+        INNER JOIN tb_employee_base t2 ON t1.mobile = t2.mobile
+        AND t2.is_main_card = "0"
+        LEFT JOIN tb_employee_sign_rule t3 ON t2.id = t3.userid
+        LEFT JOIN tb_department t4 ON t2.department = t4.id
+        WHERE
+        t1.binding_state = '1'
+        and t2.binding_state = '1'
+        and t1.openid = #{openid}
+    </select>
+
+    <select id="queryOne" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        SELECT id,name employeeName,id_card,mobile,remark,is_main_card,department,role FROM tb_employee_base where id = #{id}
+    </select>
+
+    <update id="updateOne" parameterType="java.util.HashMap" >
+        update tb_employee_base
+        <set>
+            <if test="name != '' and name != null">
+                name = #{name},
+            </if>
+            <if test="idCard != '' and idCard != null">
+                id_card = #{idCard},
+            </if>
+            <if test="mobile != '' and mobile != null">
+                mobile = #{mobile},
+            </if>
+            <if test="isMainCard != '' and isMainCard != null">
+                is_main_card = #{isMainCard},
+            </if>
+            <if test="department != '' and department != null">
+                department = #{department},
+            </if>
+            <if test="role != '' and role != null">
+                role = #{role},
+            </if>
+            <if test="bindingState != '' and bindingState != null">
+                binding_state = #{bindingState},
+            </if>
+        </set>
+         where id = #{id}
+    </update>
+    <delete id="del" parameterType="java.lang.String">
+        delete from tb_employee_base where id = #{id}
+    </delete>
+    <select id="queryForList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        SELECT t1.id,t1.name employeeName,t1.id_card,t1.mobile,t1.remark,t1.is_main_card,t2.name department,t1.role,t1.binding_state
+        FROM tb_employee_base t1 LEFT JOIN tb_department t2 ON t1.department = t2.id
+        <where>
+            <if test="bindingState != '' and bindingState != null">
+                and t1.binding_state = #{bindingState}
+            </if>
+            <if test="mobile != '' and mobile != null">
+                and t1.mobile = #{mobile}
+            </if>
+            <if test="department != '' and department != null">
+                and t2.name = #{department}
+            </if>
+            <if test="isMainCard">
+                and t1.is_main_card = #{isMainCard}
+            </if>
+            <if test="departmentId != '' and departmentId != null">
+                and t1.department = #{departmentId}
+            </if>
+        </where>
+        order by mobile,remark LIMIT 0,4
+    </select>
+    <update id="updateByMobile" parameterType="java.util.HashMap">
+        update tb_employee_base set binding_state = #{bindingState} where mobile = #{mobile} and is_main_card = '0'
+    </update>
+</mapper>

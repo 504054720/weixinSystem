@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>工资单</title>
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <script src="/static/js/jquery.min.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+
+<script>
+$(function(){
+    var date = new Date();
+	var curYear = date.getFullYear();
+	var lastYear = curYear - 1;
+	$("#yearSelect").append("<option value='"+lastYear+"'>"+lastYear+"</option>");
+	$("#yearSelect").append("<option value='"+curYear+"'>"+curYear+"</option>");
+	$("#yearSelect").val(curYear);
+	getYearMonth("oIG9C1as3P6GY6p-hVBnIdWVEFzY",curYear);
+
+	$(".content-list").on("click",".filed",function(){
+	    var curYear = $("#yearSelect").val();
+		var yearMonth = $(this).attr("datas");
+		var monthFull = yearMonth.substring(4,yearMonth.length);
+		var month = monthFull.substring(0,monthFull.length - 1) == "0" ? monthFull.substring(1,monthFull.length) : monthFull;
+
+        $(".title-div").find("span").text(curYear + "年" + month + "月工资单");
+        getSalayInfo("oIG9C1as3P6GY6p-hVBnIdWVEFzY",yearMonth);
+		$(".content").hide();
+		$(".content-info").show();
+	});
+
+	$("#goBack").click(function(){
+	    $(".content-info").hide();
+	    $(".content").show();
+
+	});
+
+});
+
+function getYearMonth(openid,yearStr){
+    var data = {"openid": openid,"yearStr": yearStr};
+    $.ajax({
+        url: "/payInfo/queryYearMonth",
+        type: "POST",
+        data: JSON.stringify(data),
+        contentType: "application/json",
+        success: function(result){
+        console.log("result:" + result);
+            if (result == "1") {
+                alert("系统异常，请稍后再试！");
+                return;
+            }
+            if (result != "null") {
+                console.log("JSON.parse(result):" + JSON.parse(result));
+                iteratorYearMonth(JSON.parse(result));
+                return;
+            }
+        }
+    });
+}
+
+function iteratorYearMonth(yearMonthData){
+    for (var i in yearMonthData) {
+        $(".content-list").append("<div class='filed' datas='"+yearMonthData[i].years_month+"'><span class='filed-span'>"+yearMonthData[i].years_month+"工资单</span><span class='info-span'>></span></div>");
+    }
+}
+
+function getSalayInfo(openid,yearMonth){
+    var data = {"openid": openid,"yearMonth": yearMonth};
+    $.ajax({
+        url: "/payInfo/querySalayList",
+        type: "POST",
+        data: JSON.stringify(data),
+        contentType: "application/json",
+        success: function(result){
+            if (result == "1") {
+                alert("系统异常，请稍后再试！");
+                return;
+            }
+            if (result != "null") {
+                console.log("JSON.parse(result):" + JSON.parse(result));
+                iteratorSalayList(JSON.parse(result));
+                return;
+            }
+        }
+    });
+}
+
+function iteratorSalayList(salayList){
+    var dataStr = "";
+    for (var i in salayList) {
+        if (i >= 1) {
+            dataStr += "<hr>";
+        }
+            dataStr += "<p><span class='filed-span'>身份证</span><span class='info-span'>"+salayList[i].id_card+"</span></p>";
+            dataStr += "<p><span class='filed-span'>姓名</span><span class='info-span'>"+salayList[i].name+"</span></p>";
+            dataStr += "<p><span class='filed-span'>部门</span><span class='info-span'>"+salayList[i].department+"</span></p>";
+            dataStr += "<p><span class='filed-span'>级别</span><span class='info-span'>"+salayList[i].level+"</span></p>";
+            dataStr += "<p><span class='filed-span'>基本工资</span><span class='info-span'>"+salayList[i].base_pay+"</span></p>";
+            dataStr += "<p><span class='filed-span'>效益工资</span><span class='info-span'>"+salayList[i].benefit_pay+"</span></p>";
+            dataStr += "<p><span class='filed-span'>津贴</span><span class='info-span'>"+salayList[i].subsidy_pay+"</span></p>";
+            dataStr += "<p><span class='filed-span'>奖金</span><span class='info-span'>"+salayList[i].bonus_pay+"</span></p>";
+            dataStr += "<p><span class='filed-span'>提升工资</span><span class='info-span'>"+salayList[i].up_pay+"</span></p>";
+            dataStr += "<p><span class='filed-span'>日常加班</span><span class='info-span'>"+salayList[i].day_work_over+"</span></p>";
+            dataStr += "<p><span class='filed-span'>节假日加班</span><span class='info-span'>"+salayList[i].weekday_work_over+"</span></p>";
+            dataStr += "<p><span class='filed-span'>项目奖</span><span class='info-span'>"+salayList[i].item_bonus_pay+"</span></p>";
+            dataStr += "<p><span class='filed-span'>KPI奖金</span><span class='info-span'>"+salayList[i].kpi_bonus_pay+"</span></p>";
+            dataStr += "<p><span class='filed-span'>话费书报费</span><span class='info-span'>"+salayList[i].telephone_pay+"</span></p>";
+            dataStr += "<p><span class='filed-span'>考勤扣款</span><span class='info-span'>"+salayList[i].attendance_deductions+"</span></p>";
+            dataStr += "<p><span class='filed-span'>纪律评扣</span><span class='info-span'>"+salayList[i].discipline_deductions+"</span></p>";
+            dataStr += "<p><span class='filed-span'>应发工资</span><span class='info-span'>"+salayList[i].should_send_pay+"</span></p>";
+            dataStr += "<p><span class='filed-span'>代扣款项</span><span class='info-span'>"+salayList[i].instead_deductions+"</span></p>";
+            dataStr += "<p><span class='filed-span'>养老金</span><span class='info-span'>"+salayList[i].pension_pay+"</span></p>";
+            dataStr += "<p><span class='filed-span'>失业险</span><span class='info-span'>"+salayList[i].unemployment_insurance+"</span></p>";
+            dataStr += "<p><span class='filed-span'>医疗险</span><span class='info-span'>"+salayList[i].medical_insurance+"</span></p>";
+            dataStr += "<p><span class='filed-span'>住房公积金</span><span class='info-span'>"+salayList[i].accumulation_fund+"</span></p>";
+            dataStr += "<p><span class='filed-span'>个税</span><span class='info-span'>"+salayList[i].personal_taxes+"</span></p>";
+            dataStr += "<p><span class='filed-span'>实发工资</span><span class='info-span'>"+salayList[i].actual_send_pay+"</span></p>";
+    }
+    $(".content-salary").append(dataStr);
+}
+</script>
+
+    <style>
+body{
+    background-color: #eee;
+    font-size: 50px;
+}
+.filed{
+    overflow: hidden;
+    margin-top: 10px;
+	width:100%;
+	padding:15px 0;
+    height:12%;
+    background-color: white;
+}
+
+select{
+    height:90px;
+	width:100%;
+}
+.select-div{
+    text-align: center;
+	margin-top: 10px;
+    margin-bottom: 30px;
+	width:100%;
+}
+p{
+    margin: 5px 0 10px;
+    background-color: white;
+	font-size:30px;
+}
+.filed-span{
+    padding-left:20px;
+}
+.info-span{
+    float:right;
+	padding-right:20px;
+	color: darkgray;
+}
+
+.form-control{
+    height:70px;
+    font-size:30px;
+    width:50px;
+
+}
+.go-back{
+    overflow: hidden;
+	width:100%;
+	padding:30px 0;
+    height:12%;
+	margin-bottom: -100px;
+}
+.container{
+    width:100%;
+}
+.title-div{
+    text-align: center;
+    margin-bottom: 30px;
+	width:100%;
+}
+hr{
+    color: white;
+    border: none;
+    border-top: solid;
+    width: 100%;
+}
+</style>
+</head>
+<body>
+<div class = "container">
+    <div class="content">
+        <div class="select-div">
+            <select id = "yearSelect">
+            </select>
+        </div>
+        <div class="content-list">
+            <!--<div class="filed" datas="1"><span class="filed-span">1月工资单</span><span class="info-span">></span></div>-->
+            <!--<div class="filed" datas="2"><span class="filed-span">2月工资单</span><span class="info-span">></span></div>-->
+            <!--<div class="filed" datas="3"><span class="filed-span">3月工资单</span><span class="info-span">></span></div>-->
+            <!--<div class="filed" datas="4"><span class="filed-span">4月工资单</span><span class="info-span">></span></div>-->
+            <!--<div class="filed" datas="5"><span class="filed-span">5月工资单</span><span class="info-span">></span></div>-->
+            <!--<div class="filed" datas="6"><span class="filed-span">6月工资单</span><span class="info-span">></span></div>-->
+            <!--<div class="filed" datas="7"><span class="filed-span">7月工资单</span><span class="info-span">></span></div>-->
+            <!--<div class="filed" datas="8"><span class="filed-span">8月工资单</span><span class="info-span">></span></div>-->
+            <!--<div class="filed" datas="9"><span class="filed-span">9月工资单</span><span class="info-span">></span></div>-->
+            <!--<div class="filed" datas="10"><span class="filed-span">10月工资单</span><span class="info-span">></span></div>-->
+            <!--<div class="filed" datas="11"><span class="filed-span">11月工资单</span><span class="info-span">></span></div>-->
+            <!--<div class="filed" datas="12"><span class="filed-span">12月工资单</span><span class="info-span">></span></div>-->
+        </div>
+    </div>
+    <div class="content-info" style="display:none;">
+        <div class="go-back">
+            <input id = "goBack" type = "button"  class = "form-control" value = "返回" style = "width:200px;float:right;"/>
+        </div>
+        <div class="title-div"><span>2019年2月工资单</span></div>
+        <div class="content-salary">
+            <!--<p><span class="filed-span">身份证</span><span class="info-span">410258951244785146</span></p>-->
+            <!--<p><span class="filed-span">姓名</span><span class="info-span">李四</span></p>-->
+            <!--<p><span class="filed-span">部门</span><span class="info-span">事业二部</span></p>-->
+            <!--<p><span class="filed-span">级别</span><span class="info-span">高级</span></p>-->
+            <!--<p><span class="filed-span">基本工资</span><span class="info-span">0001</span></p>-->
+            <!--<p><span class="filed-span">效益工资</span><span class="info-span">0002</span></p>-->
+            <!--<p><span class="filed-span">津贴</span><span class="info-span">0003</span></p>-->
+            <!--<p><span class="filed-span">奖金</span><span class="info-span">0004</span></p>-->
+            <!--<p><span class="filed-span">提升工资</span><span class="info-span">0005</span></p>-->
+            <!--<p><span class="filed-span">日常加班</span><span class="info-span">0006</span></p>-->
+            <!--<p><span class="filed-span">节假日加班</span><span class="info-span">101</span></p>-->
+            <!--<p><span class="filed-span">项目奖</span><span class="info-span">110</span></p>-->
+            <!--<p><span class="filed-span">KPI奖金</span><span class="info-span">110</span></p>-->
+            <!--<p><span class="filed-span">话费书报费</span><span class="info-span">110</span></p>-->
+            <!--<p><span class="filed-span">考勤扣款</span><span class="info-span">110</span></p>-->
+            <!--<p><span class="filed-span">纪律评扣</span><span class="info-span">110</span></p>-->
+            <!--<p><span class="filed-span">应发工资</span><span class="info-span">110</span></p>-->
+            <!--<p><span class="filed-span">代扣款项</span><span class="info-span">110</span></p>-->
+            <!--<p><span class="filed-span">养老金</span><span class="info-span">110</span></p>-->
+            <!--<p><span class="filed-span">失业险</span><span class="info-span">110</span></p>-->
+            <!--<p><span class="filed-span">医疗险</span><span class="info-span">110</span></p>-->
+            <!--<p><span class="filed-span">住房公积金</span><span class="info-span">110</span></p>-->
+            <!--<p><span class="filed-span">个税</span><span class="info-span">110</span></p>-->
+            <!--<p><span class="filed-span">实发工资</span><span class="info-span">110</span></p>-->
+        </div>
+    </div>
+</div>
+</body>
+</html>

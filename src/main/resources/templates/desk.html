@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>工作台</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport"
+          content="width=device-width,height=device-height,inital-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+    <meta name="format-detection" content="telephone=no"/>
+    <meta charset="utf-8"/>
+    <style type="text/css">
+    html, body {
+    color:#222;
+    font-family:
+    Microsoft YaHei, Helvitica, Verdana, Tohoma, Arial, san-serif;
+    margin:0;
+    padding: 0;
+    text-decoration: none;width: 100%;
+        height: 100%;
+    }
+    img { border:0;
+    }
+    ul { list-style: none outside none; margin:0; padding: 0; }
+
+    body .mainmenu:after {
+    clear: both;
+    content: " ";
+    display: block;
+    }
+
+    body .mainmenu li{
+        float:left;
+        margin-left: 2.5%;
+        margin-top: 2.5%;
+        width: 30%;
+        border-radius:3px;
+        overflow:hidden;
+         }
+
+    body .mainmenu li  b{
+        display:block;color:#FFF;
+        text-align:center
+        }
+
+    body .mainmenu li  img{
+        margin: 15px auto 0;
+        width: 50px;
+    height: 50px;
+    }
+
+    body .mainmenu li  span{
+    display:block;text-align: center;
+    height:30px;
+    line-height:30px;
+    color: #999;
+    font-size:14px;
+    }
+    #selectdiv{
+        background: rgba(0,0,0,0.3);
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+    #rulelist{
+        position: absolute;
+        top: 30%;
+        left: 50%;
+        height: 35px;
+        width: 50%;
+        transform: translate(-50%,-100%);
+    }
+    </style>
+
+</head>
+
+<body>
+<ul class="mainmenu">
+
+    <li><b onclick="gtSign('/templates/daka.html')"><img src="/static/image/qian.png"/></b><span>打卡</span></li>
+
+    <li><b><img src="/static/image/qian.png"/></b><span>审批</span></li>
+
+    <li><b><img src="/static/image/qian.png"/></b><span>公告</span></li>
+
+    <li><b><img src="/static/image/qian.png"/></b><span>汇报</span></li>
+
+    <li><b><img src="/static/image/qian.png"/></b><span>消息助手</span></li>
+
+    <li><b><img src="/static/image/qian.png"/></b><span>投票助手</span></li>
+
+    <li><b><img src="/static/image/qian.png"/></b><span>抽奖</span></li>
+
+    <li><b><img src="/static/image/qian.png"/></b><span>同事吧</span></li>
+
+    <li><b onclick="querySignRule()"><img src="/static/image/qian.png"/></b><span>打卡设置</span></li>
+
+</ul>
+
+<div id="selectdiv"  style="display: none;" >
+    <select onchange="setSignRule()" name="rulelist" id="rulelist" >
+    <option value="-1" selected>--请选择--</option>
+    </select>
+</div>
+<script  type="text/javascript" src="http://res.wx.qq.com/open/js/jweixin-1.2.0.js"></script>
+<script  type="text/javascript" src="/static/js/jquery.min.js"></script>
+<script  type="text/javascript">
+    var userid='', phone='', deptid="", ruleid="", token='',xp='',yp='', scope='';
+    var code='', noncestr='', timestamp='',amt='',pmt='';
+    var datas= {};
+    //获取请求参数
+    function GetQueryString(name) {
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null) return unescape(r[2]);
+        return null;
+    }
+    function getUserInfo(code){// 用户详情
+        $.ajax({
+            url:"/getUserInfoByCode/"+code,
+            type:"get",
+            success:function (re, status) {
+                var j= $.parseJSON(re.toString()) ;
+                if(j==null){
+                    alert("获取用户信息失败！");
+                    return;
+                }
+                if(j.errcode == '0'){
+                    phone=j.mobile;
+                    userid= j.userid;
+                    var dp= j.department;
+                    if (dp === undefined || dp.length == 0) {
+                        dp=[1];
+                    }
+                    deptid=dp.join("-");
+                    queryUserRule(userid);
+                }else{
+                    alert("获取用户信息失败！");
+                }
+            }
+        })
+    }
+    function gtSign(u){
+        location.href=u+"?userid="+userid+"&phone="+phone+"&deptid="+deptid+"&ruleid="+ruleid+"&scope="+scope+"&amt="+amt+"&pmt="+pmt+"&xp="+xp+"&yp="+yp;
+    }
+    function setstoageSession(userid,phone,deptid,ruleid,scope,amt,pmt,xp,yp){
+        sessionStorage.setItem("userid",userid);
+        sessionStorage.setItem("phone",phone);
+        sessionStorage.setItem("deptid",deptid);
+        setrulestoage(ruleid,scope,amt,pmt,xp,yp);
+    }
+    function setrulestoage(ruleid,scope,amt,pmt,xp,yp){
+        sessionStorage.setItem("ruleid",ruleid);
+        sessionStorage.setItem("scope",scope);
+        sessionStorage.setItem("amt",amt);
+        sessionStorage.setItem("pmt",pmt);
+        sessionStorage.setItem("xp",xp);
+        sessionStorage.setItem("yp",yp);
+    }
+    function getUserSession(){
+        userid= sessionStorage.getItem("userid");
+        phone=sessionStorage.getItem("phone");
+        deptid= sessionStorage.getItem("deptid");
+        ruleid=sessionStorage.getItem("ruleid");
+        scope=sessionStorage.getItem("scope");
+        amt=sessionStorage.getItem("amt");
+        pmt=sessionStorage.getItem("pmt");
+        xp= sessionStorage.getItem("xp");
+        yp= sessionStorage.getItem("yp");
+    }
+    function   queryUserRule(uid){
+        $.ajax({
+            url:"/signRule/queryUserRule/"+uid,
+            type:"get",
+            success:function (re, status) {
+                if(re){
+                    var j= $.parseJSON(re.toString());
+                        ruleid=j.id;
+                        scope=j.scope;
+                        xp=j.longitude;
+                        yp=j.latitude;
+                        amt=j.work_time;
+                        pmt=j.off_work_time;
+                    setstoageSession(userid,phone,deptid,ruleid,scope,amt,pmt,xp,yp);
+                }else{
+                    alert("请联系系统管理员！");
+                }
+            }
+        })
+    }
+    function setSignRule(){//设置打卡本人规则
+        var v  =  document.getElementById("rulelist").value;
+        $.ajax({
+            type: 'POST',
+            url: '/signRule/updateUserRule',
+            data: {"userid":userid,"ruleid":v},
+            success: function(re,status){
+                if(re=='0'){
+                    $("#selectdiv").hide();
+                    restUserrule(datas,v);
+                    alert("规则设置成功!");
+                }else{
+                    alert("规则设置失败!");
+                }
+            }
+        });
+    }
+    // 查询 打卡规则
+
+    function querySignRule(){
+        $("#selectdiv").show();
+        $.ajax({
+            url:"/signRule/query",
+            type:"get",
+            success:function (re, status) {
+                datas={};
+                $("#rulelist").empty();
+                $("#rulelist").append("<option value='-1' selected> --请选择-- </option>");
+                var j= $.parseJSON(re.toString())
+                for(var k1 in j){
+                    var id1=j[k1].id;
+                    $("#rulelist").append("<option value='"+id1+"'>"+j[k1].name+"</option>");
+                    var rd= "'a"+id1+"'";
+                    datas[rd]=[id1,j[k1].scope,j[k1].longitude,j[k1].latitude,j[k1].work_time,j[k1].off_work_time];
+                }
+            }
+        })
+    }
+    function restUserrule(obj,index){
+        for(var h in obj ){
+            if(obj[h][0]==index){
+                ruleid=index;
+                scope=obj[h][1];
+                xp=obj[h][2];
+                yp=obj[h][3];
+                amt=obj[h][4];
+                pmt=obj[h][5];
+                setrulestoage(ruleid,scope,amt,pmt,xp,yp);
+                break;
+            }
+        }
+    }
+
+    $(function(){
+        getUserSession();
+        code='jFxTDhnOldR-Oxx4QCnQznuzQooVTCv9A00wgc5jHWo';
+        //GetQueryString("code");
+        if(code){
+            if(!$.trim(userid)){
+                getUserInfo(code)
+            }
+        }
+    });
+
+</script>
+</body>
+</html>

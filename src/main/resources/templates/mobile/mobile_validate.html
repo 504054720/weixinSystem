@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>手机号绑定</title>
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <script src="/static/js/jquery.min.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+
+    <script>
+$(function(){
+    var openid = getQueryString("openid");
+
+	$("#mobileDiv").click(function(){
+		$("#editDiv").show();
+        $("#mobile").focus();
+	});
+
+
+	$("#okSave").click(function(){
+	    var newMobile = $("#mobile").val();
+	    var reg = /^[1][3,4,5,7,8][0-9]{9}$/;
+	    if (!reg.test(newMobile)) {
+	        alertFunc("请输入正确的手机号码！");
+	        return;
+	    }
+
+	    var data = {"openid": openid,"oldMobile":$("#mobileDiv").find(".mobile-class").text(),"newMobile":newMobile};
+	    $.ajax({
+	        url: "/employee/modifyMobile",
+	        type: "POST",
+	        data: JSON.stringify(data),
+	        contentType: "application/json",
+	        success: function(result){
+	            if (result == "1") {
+	                alertFunc("系统异常，请稍后再试！");
+	                return;
+	            }
+	            if (result == "0") {
+	                $("#mobileDiv").find(".mobile-class").text($("#mobile").val());
+	                $("#editDiv").hide();
+	                $(".content-list").show();
+	                return;
+	            }
+	        }
+	    });
+	});
+
+});
+
+function getEmployeBaseInfo(openid){
+    var data = {"openid": openid};
+    $.ajax({
+        url: "/employee/queryEmployeBaseInfo",
+        type: "POST",
+        data: JSON.stringify(data),
+        contentType: "application/json",
+        success: function(result){
+        console.log("result:"+result);
+            if (result != "0" && result != "1" && result != "null") {
+                var resultObj = JSON.parse(result);
+                $("#name").text(resultObj.name);
+                $("#oldMobile").text(resultObj.mobile);
+                if (resultObj.department == "1") {
+                    $("#department").text("事业二部");
+                }
+
+            }
+        }
+    });
+}
+
+	function alertFunc(a){
+	    $("#alertModal").find(".modal-body").html(a);
+		$("#alertModal").modal("show");
+	}
+
+	function getQueryString(name) {
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null) return unescape(r[2]);
+        return null;
+}
+
+</script>
+    <style>
+body{
+    background-color: #eee;
+    font-size: 50px;
+}
+.filed{
+    overflow: hidden;
+    margin-top: 30px;
+	width:100%;
+	padding:15px 0;
+    height:12%;
+    background-color: white;
+}
+.container{
+    width:100%;
+}
+.content-list{
+    margin-top:50px;
+	width:100%;
+}
+.info-span{
+    float:right;
+	padding-right:20px;
+    color: darkgray;
+}
+.filed-span{
+    padding-left:20px;
+}
+.click-span{
+    float:right;
+	padding-right:20px;
+    color: darkgray;
+}
+.mobile-class{
+    float:unset;
+	margin-left: 400px;
+}
+.form-control{
+    height:80px;
+    font-size:40px;
+}
+.go-back{
+    overflow: hidden;
+	width:100%;
+	padding:30px 0;
+    height:12%;
+}
+.mobile-input{
+    width:100%;
+	height:100px;
+}
+.filed-input{
+    overflow: hidden;
+	width:100%;
+    height:100px;
+    background-color: white;
+}
+.edit-div{
+    width:100%;
+    font-size:50px;
+}
+input{
+    font-size:50px;
+}
+</style>
+</head>
+<body>
+<div class = "container" id="mobileValidateDiv">
+    <div id = "editDiv" class="edit-div">
+        <div class="go-back">
+            <input id = "okSave" type = "button"  class = "form-control" value = "保存" style = "width:200px;float:right;"/>
+        </div>
+        <div class="filed-input"><input id="mobile" type="text" class = "form-control mobile-input" placeholder="请输入手机号"/></div>
+    </div>
+
+    <!-- 模态框（Modal） -->
+    <div class="modal fade" id="alertModal" tabindex="-1" role="dialog" show="true" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog" style = "margin: 60% auto;">
+            <div class="modal-content" style = "border-radius: 30px;font-size: 40px;">
+                <div class="modal-body" style="text-align: center;height:150px;padding: 50px 0;">
+                    提示内容
+                </div>
+                <div class="modal-footer" style="text-align: center;">
+                    <button type="button" class="btn btn-primary"  data-dismiss="modal" style="font-size: 40px;">
+                        确定
+                    </button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal -->
+    </div>
+</div>
+</body>
+</html>

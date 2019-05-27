@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>节假日管理</title>
+    <style>
+        .btn0426{
+            padding: 10px;
+            background: #337ab7;
+            border: 0;
+            color: white;
+            border-radius: 5px;
+            margin-right: 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div>
+
+     <h3>节假日管理 </h3>
+
+    <input type="date"   id="ymd"   min="2019-02-01"  />
+
+    <b   align="center" onclick="updatedays(0)" class="btn0426 addstyle"> 设置工作日 </b>
+    <b   align="center" onclick="updatedays(1)" class="btn0426 addstyle"> 设置节假日</b>
+    <b   align="center" onclick="initdays()" class="btn0426 addstyle">初始化日历</b>
+
+
+</div>
+
+<script src="/static/js/jquery.min.js"></script>
+<script src="/static/js/jquery.form.js"></script>
+<script src="/static/js/json2.min.js"></script>
+<script src="/static/js/bootstrap.min.js"></script>
+
+    <script type="text/javascript" >
+
+        function initdays(){
+           var flg= sessionStorage.getItem("haddone");
+            if(flg=="1" ||flg=="2" ){
+                alert("请勿重复操作！");
+                return ;
+            }else{
+                sessionStorage.setItem("haddone","1");
+                $.ajax({
+                url: '/signRule/initdays',
+                type: 'get',
+                success: function(re,status){
+                    if(re=='0'){
+                    sessionStorage.setItem("haddone","2");
+                        alert("初始化成功!");
+                    }else{
+                     sessionStorage.setItem("haddone","3");
+                        alert("初始化失败!");
+                    }
+                   }
+                 });
+            }
+        }
+
+        function updatedays(a){
+            $.ajax({
+                type: 'POST',
+                url: '/signRule/updatedays',
+                data: {"ymd":$("#ymd").val(),"status":a},
+                success: function(re,status){
+                    if(re=='0'){
+                        alert("设置成功!");
+                    }else{
+                        alert("设置失败!");
+                    }
+                }
+            });
+        }
+        function translate(prop){
+            if(prop <= 9){
+                return "0" + prop;
+            }else {
+                return prop
+            }
+        }
+$(function(){
+
+    var now = new Date(),
+     year = now.getFullYear(),
+     month = ((now.getMonth() + 1)>9)?(now.getMonth() + 1):("0"+(now.getMonth() + 1)),
+     date = translate(now.getDate());
+     var dateString = year+"-"+month+"-"+date ;
+     $("#ymd").val(dateString);
+
+});
+
+    </script>
+</body>
+</html>

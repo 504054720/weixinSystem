@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +19,64 @@ import java.util.Map;
 public class WeixinClient {
     @Autowired
     HttpService httpService;
+
+    /**
+     *获取应用的jsapi_ticket
+     * */
+    public String getJsapiTicket(String token)  throws Exception {
+        String  url="https://qyapi.weixin.qq.com/cgi-bin/ticket/get?access_token="+token+"&type=agent_config";
+        HttpResult result = httpService.doGet(url);
+        return JSON.parse(result.getBody()).toString();
+    }
+
+    /**
+     *获取企业的jsapi_ticket
+     * */
+    public String getQYJsapiTicket(String token)  throws Exception {
+        String  url="https://qyapi.weixin.qq.com/cgi-bin/get_jsapi_ticket?access_token="+token;
+        HttpResult result = httpService.doGet(url);
+        return JSON.parse(result.getBody()).toString();
+    }
+
+
+
+
+    /**
+     *sha1的加密算法
+     * */
+    public   String SHA1(String decript) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-1");
+            digest.update(decript.getBytes());
+            byte messageDigest[] = digest.digest();
+            // Create Hex String
+            StringBuffer hexString = new StringBuffer();
+            // 字节数组转换为 十六进制 数
+            for (int i = 0; i < messageDigest.length; i++) {
+                String shaHex = Integer.toHexString(messageDigest[i] & 0xFF);
+                if (shaHex.length() < 2) {
+                    hexString.append(0);
+                }
+                hexString.append(shaHex);
+            }
+            return hexString.toString();
+
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        return "";
+    }
+
+    /**
+     *根据code获取成员信息
+     * @param a token
+     * @param b code
+     * */
+    public String getUIdByCode(String a,String b) throws Exception{
+        String  url="https://qyapi.weixin.qq.com/cgi-bin/user/getuserinfo?access_token="+a+"&code="+b;
+        HttpResult result = httpService.doGet(url);
+        return JSON.parse(result.getBody()).toString();
+    }
 
     /***
      * 获取token
@@ -73,4 +133,25 @@ public class WeixinClient {
         return String.valueOf(resultMap.get("errcode"));
     }
 
+    /***
+     * 根据token userid 获取用户详细信息
+     * @param accessToken
+     * @param userId
+     * @return
+     * @throws Exception
+     */
+    public String getUserInfo(String accessToken,String userId) throws  Exception{
+        String url = "https://qyapi.weixin.qq.com/cgi-bin/user/get?access_token="+accessToken+"&userid="+ userId;
+        JSONObject jsonObject = new JSONObject();
+        HttpResult result = httpService.doGet(url);
+        Map<String,String> resultMap = (Map<String, String>) JSON.parse(result.getBody());
+        jsonObject.put("errcode",resultMap.get("errcode"));
+        jsonObject.put("userid",resultMap.get("userid"));
+        jsonObject.put("name",resultMap.get("name"));
+        jsonObject.put("department",resultMap.get("department"));
+        jsonObject.put("mobile",resultMap.get("mobile"));
+        jsonObject.put("is_leader_in_dept",resultMap.get("is_leader_in_dept"));
+        jsonObject.put("enable",resultMap.get("enable"));
+        return jsonObject.toJSONString();
+    }
 }

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <link rel="stylesheet" href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css" />
+    <title>打卡</title>
+    <style>
+        html,
+        body,
+        #container {
+            width: 100%;
+            height: 100%;
+        }
+        .amap-logo,.amap-copyright{display:none!important;}
+        .btn-warp{position: absolute; bottom:1%; right:2%;background: transparent; width: 18%;}
+        .btn-warp b{padding:10% 10%;text-align: center;display: block; background: lightblue;}
+    </style>
+    <script  type="text/javascript" src="/static/js/jquery.min.js"></script>
+    <script  src="http://res.wx.qq.com/open/js/jweixin-1.2.0.js"></script>
+    <script src="https://webapi.amap.com/maps?v=1.4.14&key=a357f7ec505f1c05387839bbf6548933"></script>
+    <script type="text/javascript">
+      var map;var m1; var m2;
+     var noncestr, timestamp ;
+     var userid='',phone='', deptid="";
+     var ruleid="",scope='',amt="",pmt='',xp='',yp='';
+
+     //时间 戳
+     function timetemp(){
+         return Date.parse(new Date()).toString().substr(0,10);
+     }
+     // 随机数
+     function randomChar(){
+         var str="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+         var val="";
+         for(var i=0;i<16;i++){
+             val+=str.substr(Math.round((Math.random()*10)),1);
+         }
+         return val;
+     }
+     // 动态 url  开发 测试   code
+     function getDymurl(){
+          return   window.location.href.split('#').toString();
+//            return   "http://www.landfalcon.com/sign.html?code="+c+"&state=";
+       //  return "http://www.landfalcon.com/desk.html";
+     }
+     // 获取 jsapi   ticket
+     function backsha1withticket(a,b,c){
+         $.ajax({
+             url:"/location",
+             type:"get",
+             contentType: "application/json",
+             data:{"noncestr":a,"timestamp":b,"url":getDymurl()},
+             success:function (re, status) {
+                 wx.config({
+                     beta: true,// 必须这么写，否则wx.invoke调用形式的jsapi会有问题   beta: true
+                     debug: false, // 开启调试模式,调用的所有api的返回值会在客户端alert出来，若要查看传入的参数，可以在pc端打开，参数信息会通过log打出，仅在pc端时才会打印。
+                     appId: 'ww094ece3d33a475b8', // 必填，公众号的唯一标识
+                     timestamp: timestamp, // 必填，生成签名的时间戳
+                     nonceStr: noncestr, // 必填，生成签名的随机串
+                     signature: re,// 必填，签名，config所以为企业签名
+                     jsApiList: ['openLocation','getLocation'] // 必填，需要使用的JS接口列表，所有JS接口列表见附录2
+                 });
+             }
+         })
+     }
+     function  getposition(){
+         wx.getLocation({
+             type: 'gcj02', // 默认为wgs84的gps坐标，如果要返回直接给openLocation用的火星坐标，可传入'gcj02'
+             success: function (res) {
+                 var latitude = res.latitude; // 纬度，浮点数，范围为90 ~ -90
+                 var longitude = res.longitude; // 经度，浮点数，范围为180 ~ -180。
+                 var speed = res.speed; // 速度，以米/每秒计
+                 var accuracy = res.accuracy; // 位置精度
+                 // map.setCenter([longitude, latitude]); //设置地图中心点
+                 m2 = new AMap.Marker({
+                     icon: "https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png",
+                     position: [longitude,latitude],
+                     offset: new AMap.Pixel(-13, -30)
+                 });
+                 m2.setMap(map);
+                 // map.setFitView();
+                 var p1 = m1.getPosition();
+                 var p2 = m2.getPosition();
+                 var distance = Math.round(p1.distance(p2));
+               //  $("#psjw").html("经度:" +longitude+"纬度:"+latitude +"距离公司"+distance+"米 打卡");
+                 signRecord(deptid,ruleid,distance,userid,phone,longitude,latitude,scope,amt,pmt);
+             }
+         });
+     }
+     //记录打卡信息
+     function signRecord(deptid,ruleid,dist,uid,phone,xp,yp,scope1,amt1,pmt1){
+        // var deptid='2',ruleid='1',dist='23',uid='13333843051',phone='13333843051',xp='113.544857',yp='34.80272',scope1=100,amt1='9:00:00',pmt1='18:00:00';
+     　$.ajax({
+             url:"/recoredSign?deptid="+deptid+"&ruleid="+ruleid+"&dist="+dist+"&userid="+uid+"&phone="+phone+"&xponit="+xp+"&yponit="+yp+"&scope="+scope1+"&amt="+amt1+"&pmt="+pmt1,
+             type:"POST",
+             dataType:'json',
+             success:function (re, status) {
+                 if(re=='1'){
+                     window.history.go(-1);
+                     alert( "打卡成功!");
+                 }else if(re=='2' || re=='3' ||re=='4'){
+                     window.history.go(-1);
+                     alert( "请勿重复打卡!");
+                 } else {
+                     alert( "打卡失败!");
+                 }
+             }
+         })
+     }
+     //获取请求参数
+     function GetQueryString(name) {
+         var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+         var r = window.location.search.substr(1).match(reg);
+         if (r != null) return unescape(r[2]);
+         return null;
+     }
+
+
+$(function(){
+    userid= GetQueryString("userid");
+    deptid= GetQueryString("deptid");
+    phone= GetQueryString("phone");
+    ruleid= GetQueryString("ruleid");
+    scope= GetQueryString("scope");
+    amt= GetQueryString("amt");
+    pmt= GetQueryString("pmt");
+    xp= GetQueryString("xp");
+    yp= GetQueryString("yp");// 系统规则设置 坐标
+
+    timestamp =timetemp();
+    noncestr = randomChar();
+    backsha1withticket(noncestr,timestamp,userid);
+
+    map = new AMap.Map('container', {
+        resizeEnable: true, //是否监控地图容器尺寸变化
+        zoom:17, //初始化地图层级
+        zooms:[3-19],
+        resizeEnable:true,
+        isHotspot:true,
+        zoomEnable:false,
+        dragEnable:true,
+        center: [xp,yp] //初始化地图中心点 113.544857,34.80272
+    });
+    if(map){
+        m1 = new AMap.Marker({
+            icon: "",
+            position: [xp,yp],
+            offset: new AMap.Pixel(-13, -30)
+        });
+        m1.setMap(map);
+    }
+});
+</script>
+</head>
+<body>
+<div id="container"></div>
+<div class="btn-warp">
+    <b onclick="getposition()"> 打 卡 </b>
+    <!--<b onclick="signRecord()"> 打 卡 </b>-->
+</div>
+</body>
+</html>

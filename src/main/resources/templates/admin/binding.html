@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>上海澄美</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="robots" content="all,follow">
+    <!-- Bootstrap CSS-->
+    <link rel="stylesheet" href="/static/vendor/bootstrap/css/bootstrap.min.css">
+    <!-- Font Awesome CSS-->
+    <link rel="stylesheet" href="/static/vendor/font-awesome/css/font-awesome.min.css">
+    <!-- theme stylesheet-->
+    <link rel="stylesheet" href="/static/css/style.default.css" id="theme-stylesheet">
+    <!-- Favicon-->
+    <!-- link rel="shortcut icon" href="img/favicon.ico" -->
+    <link rel="stylesheet" href="/static/css/index.css"/>
+    <!-- JavaScript files-->
+    <script src="/static/vendor/jquery/jquery.min.js"></script>
+    <script src="/static/vendor/bootstrap/js/bootstrap.min.js"></script>
+    <!-- Main File-->
+    <script src="/static/js/front.js"></script>
+    <script type="text/javascript">
+        $(function(){
+            loadWxOpenInfo();
+            loadEmployeeInfo();
+
+            $("#searchWxInfoBtn").click(function(){
+                $("#wxOpenid").val("");
+                loadWxOpenInfo();
+            });
+            $("#searchEmpInfoBtn").click(function(){
+                $("#employeeId").val("");
+                loadEmployeeInfo();
+            });
+            $("#wxBindingState").change(function(){
+                $("#wxOpenid").val("");
+                loadWxOpenInfo();
+            });
+            $("#emBindingState").change(function(){
+                $("#employeeId").val("");
+                loadEmployeeInfo();
+            });
+            $("#wxOpenInfo").on("click","input[name='wxChecked']",function(){
+                $("#wxOpenid").val($(this).prop("id"));
+            });
+            $("#employeeInfo").on("click","input[name='employeeChecked']",function(){
+                $("#employeeId").val($(this).prop("id"));
+                $("#hideMobile").val($(this).attr("data-mobile"));
+            });
+            $("input[name='employeeChecked']").click(function(){
+                $("#employeeId").val($(this).prop("id"));
+            });
+            $("#bindingBtn").click(function(){
+                var wxBindingState = $("#wxBindingState").val();
+                if (wxBindingState == "1") {
+                    alert("请选择未绑定微信数据！");
+                    return;
+                }
+                var empBindingState = $("#emBindingState").val();
+                if (empBindingState == "1") {
+                    alert("请选择未绑定员工数据！");
+                    return;
+                }
+                var wxChooseId = $("#wxOpenid").val();
+                console.log("wxChooseId:" + wxChooseId);
+                var empChooseId = $("#employeeId").val();
+                console.log("empChooseId:" + empChooseId);
+                if (wxChooseId == "") {
+                    alert("请选择未绑定微信数据！");
+                    return;
+                }
+                if (empChooseId == "") {
+                    alert("请选择未绑定员工数据！");
+                    return;
+                }
+                var mobile = $("#hideMobile").val();
+                console.log("paraMobile:" + mobile);
+                var data = {"openid": wxChooseId,"id": empChooseId,"mobile": mobile};
+                $.ajax({
+                    url: "/wxOpen/binding",
+                    type: "POST",
+                    data: JSON.stringify(data),
+                    contentType: "application/json",
+                    success: function(result){
+                        if (result == "0") {
+                            alert("绑定完成！");
+                            loadWxOpenInfo();
+                            loadEmployeeInfo();
+                        } else {
+                            alert("系统异常！");
+                        }
+                    }
+                });
+            });
+
+            $("#unBindingBtn").click(function(){
+                var empBindingState = $("#emBindingState").val();
+                var empChooseId = $("#employeeId").val();
+                if (empBindingState == "0" || empChooseId == "") {
+                    alert("请选择已绑定员工数据！");
+                    return;
+                }
+                var mobile = $("#hideMobile").val();
+                var data = {"id": empChooseId,"mobile": mobile};
+                $.ajax({
+                    url: "/wxOpen/unBinding",
+                    type: "POST",
+                    data: JSON.stringify(data),
+                    contentType: "application/json",
+                    success: function(result){
+                        if (result == "0") {
+                            alert("解绑完成！");
+                            loadWxOpenInfo();
+                            loadEmployeeInfo();
+                        } else {
+                            alert("系统异常！");
+                        }
+                    }
+                });
+            });
+
+
+        });
+
+        function loadWxOpenInfo(){
+            var bindingState = $("#wxBindingState").val();
+            var nickName = $("#nickName").val();
+            var data = {"bindingState": bindingState, "nickName": nickName};
+            $.ajax({
+                url: "/wxOpen/getWxOpenInfo",
+                type: "POST",
+                data: JSON.stringify(data),
+                contentType: "application/json",
+                success: function(result){
+                    if (result != "-1") {
+                        if (result != "" && result != "null" && result != "[]") {
+                            var resObj = JSON.parse(result);
+                            var dataStr = "";
+                            for (var i in resObj) {
+                                dataStr += "<tr><td>";
+                                dataStr += "<input type='radio' id = '"+resObj[i].openid+"'  name='wxChecked'  class='gcs-checkbox'/><label for='"+resObj[i].openid+"'></label></td>";
+                                dataStr += "<td><img class='head-img' src='"+resObj[i].headimgurl+"'></td><td>"+resObj[i].nickname+"</td></tr>";
+                            }
+                            $("#wxOpenInfo").html("");
+                            $("#wxOpenInfo").append(dataStr);
+                        } else {
+                            $("#wxOpenInfo").html("");
+                            $("#wxOpenInfo").append("<tr><td colspan='3'>暂无数据！</td></tr>");
+                        }
+                    } else {
+                            $("#wxOpenInfo").html("");
+                            $("#wxOpenInfo").append("<tr><td colspan='3'>系统异常！</td></tr>");
+                    }
+                }
+            });
+        }
+
+        function loadEmployeeInfo(){
+            var bindingState = $("#emBindingState").val();
+            var mobile = $("#mobile").val();
+            var department = $("#department").val();
+            var data = {"bindingState": bindingState,"mobile": mobile,"department": department};
+            $.ajax({
+                url: "/employee/getEmployeeInfo",
+                type: "POST",
+                data: JSON.stringify(data),
+                contentType: "application/json",
+                success: function(result){
+                    if (result != "-1") {
+                        if (result != "" && result != "null" && result != "[]") {
+                            var resObj = JSON.parse(result);
+                            var dataStr = "";
+                            for (var i in resObj) {
+                                dataStr += "<tr><td>";
+                                dataStr += "<input type='radio' id = '"+resObj[i].id+"'  name='employeeChecked' data-mobile='"+resObj[i].mobile+"'  class='gcs-checkbox'/><label for='"+resObj[i].id+"'></label></td>";
+                                dataStr += "<td>"+resObj[i].employeeName+"</td><td>"+resObj[i].id_card+"</td><td>"+resObj[i].mobile+"</td><td>"+resObj[i].department+"</td></tr>";
+                            }
+                            $("#employeeInfo").html("");
+                            $("#employeeInfo").append(dataStr);
+                        } else {
+                            $("#employeeInfo").html("");
+                            $("#employeeInfo").append("<tr><td colspan='5'>暂无数据！</td></tr>");
+                        }
+                    } else {
+                            $("#employeeInfo").html("");
+                            $("#employeeInfo").append("<tr><td colspan='5'>系统异常！</td></tr>");
+                    }
+                }
+            });
+        }
+
+    </script>
+    <style>
+        .small-button-search{
+            font-size: 10px;
+            padding: 5px;
+            margin: -7px 0 -5px 0;
+        }
+        .middle-button-search{
+            font-size: 15px;
+            padding: 5px;
+            margin: -5px 0;
+        }
+        .head-img{
+            width: 30px;
+            height: 30px;
+            margin: -6.13px 0;
+        }
+        .th-right{
+            text-align: right;
+        }
+        .th-left{
+            padding-left: unset;
+            text-align: left;
+        }
+        .option-div{
+            margin-left: 442px;
+            float: right;
+        }
+        .small-select{
+            font-size: 10px;
+            margin: -5px 0;
+            padding: unset;
+            height: 30px;
+            width: 100%;
+        }
+        .wx-search-div-select{
+            width: 70px;
+            float: left;
+            margin-left: -10px;
+        }
+        .wx-search-div-input{
+            width: 120px;
+            float: left;
+            margin-left: 10px;
+        }
+        .search-div{
+            width: 30px;
+            float: right;
+            margin-left: 10px;
+            height: 22px;
+        }
+    </style>
+</head>
+<body>
+
+        <div class="content-inner">
+            <!-- Page Header-->
+            <header class="page-header">
+                <div class="container-fluid">
+                    <h2 class="no-margin-bottom">审核绑定</h2>
+                </div>
+            </header>
+            <!-- Dashboard Counts Section-->
+            <section class="dashboard-counts no-padding-bottom" style="padding-top: 10px;">
+                <!--iframe class="row bg-white has-shadow" src="tables.html" style="width:100%;height:260px;"/-->
+                <div class="container-fluid">
+
+                    <div class="row bg-white has-shadow" style="padding: 10px 0;">
+                        <div class="col-lg-4">
+                            <div class="pie-chart-example card">
+                                <div class="card-header d-flex align-items-center">
+                                    <h3 class="h4">微信信息</h3>
+                                </div>
+                                <div class="card-body">
+                                   <table class="table table-striped">
+                                       <thead>
+                                           <th colspan="3" class="th-left">
+                                               <div class="wx-search-div-select">
+                                                   <select class="form-control small-select" id="wxBindingState">
+                                                       <option value="0">未绑定</option>
+                                                       <option value="1">已绑定</option>
+                                                   </select>
+                                               </div>
+                                               <div class="wx-search-div-input">
+                                                   <input type="text" class="form-control small-select" placeholder="请输入昵称" id="nickName">
+                                               </div>
+                                               <div class="search-div">
+                                                   <input type="button" class="btn btn-primary small-button-search" value="查询" id="searchWxInfoBtn">
+                                               </div>
+                                           </th>
+                                       </thead>
+                                       <thead><th></th><th>头像</th><th>昵称</th></thead>
+                                       <tbody id="wxOpenInfo">
+                                           <!--<tr>-->
+                                               <!--<td>-->
+                                                   <!--<input type='checkbox' id = "11"  name="checkedInfos" value=""  class="gcs-checkbox"/>-->
+                                                   <!--<label for="11"></label>-->
+                                               <!--</td>-->
+                                               <!--<td>-->
+                                                   <!--<img class="head-img" src="http://thirdwx.qlogo.cn/mmopen/oqIXKicibk3Q31MYbE1ujQbXVz8S5egISpQHbwSO1VVmmr4dJrCd3zrbbPjiaSmLwiaeusBoQsAl90gS9Gh7gOAqUnpzIBia2jwZH/132">-->
+                                               <!--</td>-->
+                                               <!--<td>不解释</td>-->
+                                           <!--<tr>-->
+                                       </tbody>
+                                   </table>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-8">
+                            <div class="pie-chart-example card">
+                                <div class="card-header d-flex align-items-center" style="height:52px;">
+                                    <div><h3 class="h4">员工信息</h3></div>
+                                    <div class="option-div">
+                                        <input type="button" class="btn btn-primary middle-button-search" value="绑定" id="bindingBtn">
+                                        <input type="button" class="btn btn-default middle-button-search" value="解绑" id="unBindingBtn">
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-striped">
+                                        <thead>
+                                        <th colspan="5" class="th-left">
+                                            <div class="wx-search-div-select">
+                                                <select class="form-control small-select" id="emBindingState">
+                                                    <option value="0">未绑定</option>
+                                                    <option value="1">已绑定</option>
+                                                </select>
+                                            </div>
+                                            <div class="wx-search-div-input">
+                                                <input type="text" class="form-control small-select" placeholder="请输入手机号" id="mobile">
+                                            </div>
+                                            <div class="wx-search-div-input">
+                                                <input type="text" class="form-control small-select" placeholder="请输入部门" id="department">
+                                            </div>
+                                            <div class="search-div">
+                                                <input type="button" class="btn btn-primary small-button-search" value="查询" id="searchEmpInfoBtn">
+                                            </div>
+                                        </th>
+
+                                        </thead>
+                                        <thead><th></th><th>姓名</th><th>身份证号</th><th>手机号</th><th>部门</th></thead>
+                                        <tbody id="employeeInfo">
+                                        <!--<tr>-->
+                                            <!--<td>-->
+                                                <!--<input type='checkbox' id = "1"  name="checkedInfos" value=""  class="gcs-checkbox"/>-->
+                                                <!--<label for="1"></label>-->
+                                            <!--</td>-->
+                                            <!--<td>曹俊景</td><td>410928155944102154</td><td>17562031558</td><td>上海澄美</td>-->
+                                        <!--</tr>-->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+    <input type="hidden" id="wxOpenid">
+    <input type="hidden" id="employeeId">
+    <input type="hidden" id="hideMobile">
+
+</body>
+</html>

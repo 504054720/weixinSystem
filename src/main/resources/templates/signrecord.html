@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>打卡记录</title>
+    <script src="/static/js/jquery.min.js"></script>
+    <script src="/static/js/jquery.form.js"></script>
+    <script src="/static/js/json2.min.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/static/css/index.css"/>
+    <style>
+        .btn0426{
+            padding: 10px;
+            background: #337ab7;
+            border: 0;
+            color: white;
+            border-radius: 5px;
+            margin-right: 20px;
+            cursor: pointer;
+        }
+    </style>
+    <script type="text/javascript">
+
+        function seachrecord(){
+            var account= $("#account").val();
+            var stime= $("#stime").val() ;
+            var phone= $("#phone").val() ;
+            if(!($.trim(account)||$.trim(stime)|| $.trim(phone) )){
+                alert("请至少填写一个搜索条件！");
+                return false;
+            }
+            $.ajax({
+                url:"/signRule/querySign",
+                type:"get",
+                data:{"account":account,"stime":stime,"phone":phone},
+                success:function (re, status) {
+                    if (status != "success" ) {
+                        alert("获取打卡记录异常！");
+                        return;
+                    }
+                    if (re == null || re == "") {
+                        alert("打卡记录为空！");
+                        return;
+                    }
+                var resultObj= $.parseJSON(re.toString());
+                $("#recordList").html("");
+                for ( var i in resultObj) {
+                   var a1= tranferval(resultObj[i].state.split(",")[0]);
+                    var a2= tranferval(resultObj[i].state.split(",")[1]);
+                    var trStr = "<tr>"
+                            + "<td>"+ resultObj[i].sign_time +"</td>"
+                            + "<td>"+ resultObj[i].user_id +"</td>"
+                            + "<td>"+ resultObj[i].mobile +"</td>"
+                            + "<td>"+ resultObj[i].work_time +"</td>"
+                            + "<td>"+ a1+"</td>"
+                            + "<td>"+ resultObj[i].off_work_time +"</td>"
+                            + "<td>"+ a2+"</td>"
+                            + "</tr>";
+                    $("#recordList").append(trStr);
+                }
+                }
+            });
+        }
+        function tranferval(v){
+            var result="未打卡";
+            if(v=='a'){
+                result="正常";
+            }else  if(v=='b'){
+                result="迟到";
+            }else  if(v=='c'){
+                result="早退";
+            }
+            return result;
+        }
+        function gohome(){
+            window.history.go(-1);
+        }
+        $(function(){
+
+         });
+    </script>
+</head>
+<body>
+<div id="app">
+        <table class="table table-striped">
+            <thead>
+            <tr>
+                <td colspan="6" align="left"><h3>打卡记录</h3></td>
+                <td   align="center" >
+                    <b   align="center" onclick="seachrecord()" class="btn0426  "> 查 询</b>
+                    <b   align="center" onclick="gohome()" class="btn0426  "> 返 回</b>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" align="left">
+                日期：    <input type="text" name="stime" id="stime" placeholder="2019-04-24" value="" class="form-control">
+                 </td>
+                <td colspan="2" align="left" >
+                 账号：   <input type="text" name="account" id="account" placeholder="lisi" value="" class="form-control">
+                </td>
+                 <td colspan="3" align="left" >
+                 电话：   <input type="text" name ="phone" id="phone" placeholder="1358776754" value="" class="form-control"/>
+                </td>
+            </tr>
+            <tr>
+                <th>打卡日期</th>
+                <th>账号</th>
+                <th>手机号</th>
+                <th>上班打卡时间</th>
+                <th>上班打卡</th>
+                <th>下班打卡时间</th>
+                <th>下班打卡</th>
+            </tr>
+            </thead>
+            <tbody id="recordList">
+            </tbody>
+        </table>
+</div>
+</body>
+
+</html>

@@ -1,0 +1,31 @@
+/*复选框*/
+.gcs-checkbox {
+  display: none;
+}
+
+.gcs-checkbox+label {
+  background-color: white;
+  border-radius: 0px;
+  border: 1px solid #d3d3d3;
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+  text-align: center;
+  vertical-align: bottom;
+  line-height: 20px;
+}
+
+.gcs-checkbox+label:hover {
+  cursor: pointer;
+  border: 1px solid #2783FB;
+}
+
+.gcs-checkbox:checked+label {
+  background-color: #eee;
+  background: #2783FB;
+}
+
+.gcs-checkbox:checked+label:after {
+  content: "\2714";
+  color: white;
+}

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>打卡规则管理</title>
+    <style>
+        .btn0426{
+            padding: 10px;
+            background: #337ab7;
+            border: 0;
+            color: white;
+            border-radius: 5px;
+            margin-right: 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<div>
+
+    <form id="ruleForm" action="" method="post"  >
+        <table class="table table-striped">
+
+            <tr>
+                <td colspan="4" align="left"><h3>打卡规则</h3></td>
+            </tr>
+            <tr>
+                <td>打卡类型</td>
+                <td>
+                    <input  type="radio" checked="checked"  name="ruletype" value="1"/>公司 &nbsp; &nbsp; &nbsp;
+                    <input  type="radio"  name="ruletype" value="2"/>外出
+                </td>
+                <td>打卡范围</td>
+                <td>
+                    <input  type="radio"  checked="checked"  name="scope" value="100"/>100米&nbsp; &nbsp; &nbsp;
+                    <input  type="radio"   name="scope" value="200"/>200米&nbsp; &nbsp; &nbsp;
+                    <input  type="radio"   name="scope" value="300"/>300米
+                </td>
+            </tr>
+            <tr>
+                <td>上班时间：</td>
+                <td>
+
+                    <input  type="radio"   name="amtime" value="8:00:00"/>上午8:00&nbsp; &nbsp; &nbsp;
+                    <input  type="radio"   name="amtime" value="8:30:00"/>上午8:30 &nbsp; &nbsp; &nbsp;
+                    <input  type="radio"  checked="checked" name="amtime" value="9:00:00"/>上午9:00
+                </td>
+                <td>下班时间：</td>
+                <td>
+                    <input  type="radio"   name="pmtime" value="17:00:00"/>下午5:00&nbsp; &nbsp; &nbsp;
+                    <input  type="radio"   name="pmtime" value="17:30:00"/>下午5:30 &nbsp; &nbsp; &nbsp;
+                    <input  type="radio"  checked="checked"  name="pmtime" value="18:00:00"/>下午6:00
+                </td>
+            </tr>
+            <tr>
+                <td>办公地点名称：</td><td><input type="text"  id="companyname"  name="companyname" value=""/></td>
+                <td>
+                    <a href="https://lbs.amap.com/console/show/picker" target="_blank" >获取经纬度</a>
+                </td>
+                <td> <input  type="text" id="xypoint" name="xypoint" value=""/></td>
+            </tr>
+            <tr >
+                <td colspan="4" style="text-align: center;padding-top: 45px">
+
+                    <b id="addbtn" align="center" onclick="addrule()" class="btn0426 addstyle"> 添 加</b>
+                    <a  href="/templates/index.html" class="btn0426">返 回</a>
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+
+<script src="/static/js/jquery.min.js"></script>
+<script src="/static/js/jquery.form.js"></script>
+<script src="/static/js/json2.min.js"></script>
+<script src="/static/js/bootstrap.min.js"></script>
+ <link rel="stylesheet" href="/static/css/bootstrap.min.css"/>
+<link rel="stylesheet" href="/static/css/index.css"/>
+<script type="text/javascript" >
+
+    function gohome(){
+        window.history.go(-1);
+    }
+    function  checkval(){
+       var xy= $("#xypoint").val();
+        var cname= $("#companyname").val();
+        if(!xy || !cname){
+            alert("请填写必填项！");
+            return false;
+        }
+         return true;
+    }
+    function addrule(){
+        if(!checkval()){
+            return false;
+        };
+        $("#addbtn").attr("disabled","disabled");
+        $("#ruleForm").ajaxSubmit({
+            url:"/signRule/insert" ,
+            type:"POST",
+            data:$('#ruleForm').serialize(),
+            success:function(re){
+                $("#addbtn").removeAttr("disabled");
+                if(re=='0'){
+                     $("#xypoint").val("");
+                    $("#companyname").val("");
+                    alert("添加成功！");
+                }else{
+                    alert("添加失败！");
+                }
+            }
+        });
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+
+    html, body {
+    color:#222;
+    font-family:
+    Microsoft YaHei, Helvitica, Verdana, Tohoma, Arial, san-serif;
+    margin:0;
+    padding: 0;
+    text-decoration: none;
+    }
+    img { border:0;
+    }
+    ul { list-style: none outside none; margin:0; padding: 0; }
+
+    body .mainmenu:after {
+    clear: both;
+    content: " ";
+    display: block;
+    }
+
+
+
+    body .mainmenu li{
+        float:left;
+        margin-left: 2.5%;
+        margin-top: 2.5%;
+        width: 30%;
+        border-radius:3px;
+        overflow:hidden;
+         }
+
+
+
+    body .mainmenu li a{
+    display:block;
+    color:#FFF;
+    text-align:center
+    }
+
+    body .mainmenu li a b{
+        display:block; height:80px;
+        }
+
+    body .mainmenu li a img{
+        margin: 15px auto 15px;
+        width: 50px;
+    height: 50px;
+    }
+
+
+
+    body .mainmenu li a span{
+    display:block;
+    height:30px;
+    line-height:30px;
+    color: #999;
+    font-size:14px;
+    }

@@ -26,7 +26,24 @@ public class HttpService {
 	private RequestConfig requestConfig;
 	
 	private HttpResult httpResult;
-	
+
+    /**
+     * 无参数get方法
+     * @param url
+     * @return
+     * @throws Exception
+     */
+    public HttpResult doGetlong(String url) throws Exception{
+        HttpGet httpGet = new HttpGet(url);
+        RequestConfig config =  RequestConfig.custom()
+                .setConnectTimeout(50000)
+                .setConnectionRequestTimeout(10000)
+                .setSocketTimeout(80000).build();
+        httpGet.setConfig(config);
+        CloseableHttpResponse response = this.httpClient.execute(httpGet);
+        return new HttpResult(String.valueOf(response.getStatusLine().getStatusCode()), EntityUtils.toString(response.getEntity(), "UTF-8"));
+    }
+
 	/**
 	 * 无参数get方法
 	 * @param url

@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.luying.weixinSystem.mapper.SignRuleMapper" >
+
+    <select id="querydays" parameterType="java.util.Map" resultType="java.util.HashMap">
+      select id,year,MONTH ,status from  tb_calendar
+        <where>
+            <if test="id !=null">
+              and   id=#{id,jdbcType=VARCHAR }
+            </if>
+            <if test="year !=null">
+              and  year=#{year,jdbcType=VARCHAR }
+            </if>
+            <if test="month !=null">
+              and  month=#{month,jdbcType=VARCHAR }
+            </if>
+            <if test="status !=null">
+                and  status=#{status,jdbcType=INTEGER }
+            </if>
+        </where>
+     </select>
+    <insert id="initdays" parameterType="java.util.List" >
+       INSERT  into tb_calendar(id,year,MONTH ,status)
+       VALUES
+          <foreach collection="list" item ="item"  separator =",">
+              (
+              #{item.id},
+              #{item.year},
+              #{item.month},
+              #{item.status}
+              )
+        </foreach>
+    </insert>
+    <update id="updatedays" parameterType="java.util.Map"   >
+        update tb_calendar set status=#{status}
+        where id=#{id}
+    </update>
+    <update id="updatedaystoholiday" parameterType="java.util.List" >
+        update tb_calendar set status=1
+            where id in (
+            <foreach collection="list" item="item" index="index" open="" close="" separator=",">
+                #{item.id}
+            </foreach>
+            )
+        </update>
+    <update id="updatedaystoweekend" parameterType="java.util.List" >
+        update tb_calendar set status=3
+        where id in (
+        <foreach collection="list" item="item" index="index" open="" close="" separator=",">
+            #{item.id}
+        </foreach>
+        )
+    </update>
+
+
+    <select id="queryFirstOneRule" parameterType="java.util.Map" resultType="java.util.HashMap">
+
+       select id,type,name,department,longitude,latitude,scope,
+         work_time,
+         off_work_time,
+        creat_time,
+        modify_time
+        from tb_sign_rule order by creat_time  limit 1
+    </select>
+
+    <insert id="insertUserRule" parameterType="java.util.HashMap"  >
+        INSERT  into tb_user_rule(userid,ruleid) value(#{userid},#{ruleid})
+   </insert>
+    <select id="queryUserRule"  parameterType="java.util.Map" resultType="java.util.HashMap">
+        select   userid,ruleid from  tb_user_rule
+        where userid= #{userid}
+    </select>
+    <select id="updatUserRule"  parameterType="java.util.Map" >
+        UPDATE  tb_user_rule set ruleid=#{ruleid}
+        where  userid= #{userid}
+    </select>
+    <select id="query" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        select id,type,name,department,longitude,latitude,scope,
+        DATE_FORMAT(work_time,"%H:%i:%s") work_time,
+        DATE_FORMAT(off_work_time,"%H:%i:%s") off_work_time,
+        position_name,
+        creat_time,
+        modify_time
+        from tb_sign_rule
+        <where>
+            <if test="ruleid !=null">
+                id=#{ruleid ,jdbcType=INTEGER}
+            </if>
+        </where>
+    </select>
+    <insert id="insert" parameterType="java.util.HashMap" >
+        insert into tb_sign_rule(
+        id,
+        type,name,department,
+        position_name,
+        longitude,latitude,
+        scope,work_time,
+        off_work_time,
+        creat_time,modify_time)
+        value(
+        #{id},
+        #{type},#{name},
+        #{department},
+        #{positionName},
+        #{longitude},
+        #{latitude},#{scope},
+        #{workTime},
+        #{offWorkTime},
+        #{creatTime},#{modifyTime})
+    </insert>
+    <update id="update" parameterType="java.util.HashMap">
+        update tb_sign_rule set
+        type = #{type},
+        name = #{name},
+        department = #{department},
+        position_name = #{positionName},
+        <if test="longitude != null and longitude != ''">
+            longitude = #{longitude},
+        </if>
+        <if test="latitude != null and latitude != ''">
+            latitude = #{latitude},
+        </if>
+        scope = #{scope},
+        work_time = #{workTime},
+        off_work_time = #{offWorkTime},
+        modify_time = #{modifyTime}
+        where id = #{ruleId}
+    </update>
+    <delete id="delete" parameterType="java.util.HashMap">
+        delete from tb_sign_rule where id = #{ruleId}
+    </delete>
+
+</mapper>

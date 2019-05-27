@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>考勤</title>
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <script src="/static/js/jquery.min.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="/static/css/map/main1119.css"/>
+    <script type="text/javascript"
+            src="https://webapi.amap.com/maps?v=1.4.14&key=cbed7938908110202977e7fb7d4a120e&plugin=AMap.Autocomplete,AMap.PlaceSearch"></script>
+    <script type = "text/javascript">
+     var myVar=setInterval(function(){myTimer()},1000);
+     function myTimer(){
+	     var d=new Date();
+	     //var t=d.toLocaleTimeString();
+		 var h = d.getHours();
+		 var m = d.getMinutes();
+		 var s = d.getSeconds();
+		 m = checkTime(m);
+		 s = checkTime(s);
+	     document.getElementById("currentTime").innerHTML=h + ":" + m + ":" + s;
+}
+    function checkTime(t){
+	    if (t < 10) {
+		    t = "0" + t;
+		}
+		return t;
+	}
+
+    function getQueryString(name) {
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null) return unescape(r[2]);
+        return null;
+}
+
+function initUserInfo(){
+    var code = getQueryString("code");
+    if (code == null || code == "" || code == "null") {
+        alertFunc("微信授权失败！")
+        lazyCloseWindow();
+        return;
+    }
+    $.ajax({
+        url: "/fuwuhao/getUserInfo/" + code,
+        async: false,
+        type: "GET",
+        success: function(result){
+            console.log("getOpenid_result:" + result);
+            if (result != "null") {
+                var resultObj = JSON.parse(result);
+                console.log("resultObj.employee:" + resultObj.employee);
+                if (resultObj.employee == undefined || resultObj.employee == "undefined" || resultObj.employee == "" || resultObj.employee == "null") {
+                    alertFunc("你还未通过审核！");
+                    lazyCloseWindow();
+                    return;
+                } else {
+                    $("#hide_userName").val(resultObj.employee.employeeName);
+                    $("#hide_department").val(resultObj.employee.department);
+                    $("#hide_role").val(resultObj.employee.role);
+                    $("#hide_mobile").val(resultObj.employee.mobile);
+                    $("#hide_ruleid").val(resultObj.employee.ruleid);
+                    $("#hide_employee_id").val(resultObj.employee.id);
+                    $("#hide_openid").val(resultObj.employee.openid);
+                }
+            }
+        }
+    });
+}
+
+$(function(){
+    initUserInfo();
+    initPosition();//定位
+    refreshRules();
+
+    $("#okSaveMobileValidate").click(function(){
+	    var newMobile = $("#mobileValidate").val();
+	    var reg = /^[1][3,4,5,7,8][0-9]{9}$/;
+	    if (!reg.test(newMobile)) {
+	        alertFunc("请输入正确的手机号码！");
+	        return;
+	    }
+
+	    var data = {"openid": $("#hide_openid").val(),"mobile":newMobile};
+	    $.ajax({
+	        url: "/wxOpen/add",
+	        type: "POST",
+	        data: JSON.stringify(data),
+	        contentType: "application/json",
+	        success: function(result){
+	            if (result == "1") {
+	                alertFunc("系统异常，请稍后再试！");
+	                WeixinJSBridge.call('closeWindow');
+	                return;
+	            }
+	            if (result == "0") {
+	                alertFunc("绑定成功！");
+	                WeixinJSBridge.call('closeWindow');
+	                return;
+	            }
+	        }
+	    });
+	});
+
+	$("#positionName").click(function(){
+        //地图加载
+         var map  = new AMap.Map("mapContainer", {
+          resizeEnable: true,
+          center: [113.544678,34.802515],
+          zoom: 13
+        });
+
+
+		    AMap.plugin('AMap.Geolocation', function() {
+        var geolocation = new AMap.Geolocation({
+            enableHighAccuracy: true,//是否使用高精度定位，默认:true
+            timeout: 10000,          //超过10秒后停止定位，默认：5s
+            buttonPosition:'RB',    //定位按钮的停靠位置
+            buttonOffset: new AMap.Pixel(10, 20),//定位按钮与设置的停靠位置的偏移量，默认：Pixel(10, 20)
+            zoomToAccuracy: true,   //定位成功后是否自动调整地图视野到定位点
+
+        });
+        map.addControl(geolocation);
+        geolocation.getCurrentPosition(function(status,result){
+            if(status=='complete'){
+                console.log("currentPosition:" + result.position);
+            }else{
+               // onError(result)
+            }
+        });
+    });
+
+
+            //输入提示
+            var autoOptions = {
+                input: "searchPosition"
+            };
+            var auto = new AMap.Autocomplete(autoOptions);
+            var placeSearch = new AMap.PlaceSearch({
+                map: ''
+            });  //构造地点查询类
+            AMap.event.addListener(auto, "select", select);//注册监听，当选中某条记录时会触发
+            var infoWindow = new AMap.InfoWindow({offset: new AMap.Pixel(0, -30)});
+            function select(e) {
+                   placeSearch.setCity(e.poi.adcode);
+                   if (e.poi && e.poi.location) {
+                        map.setZoom(18);
+                        map.setCenter(e.poi.location);
+                    }
+                 placeSearch.search(e.poi.name, function(status, result) {
+                    if (status === 'complete' && result.info === 'OK') {
+                        for(var h=0;h<result.poiList.pois.length;h++){//返回搜索列表循环绑定marker
+                            var jy=result.poiList.pois[h]['location'];//经纬度
+                            var address=result.poiList.pois[h]['address'];//地址
+
+                            var marker=new AMap.Marker({  //加点
+                                    map: map,
+                                    position: jy
+                                });
+                            marker.extData = {'getLng':jy['lng'],'getLat':jy['lat'],'address':address};//自定义想传入的参数
+                            marker.content = '123123123';
+                            marker.on("click",function(e) {
+                                var hs=e.target.extData;
+                                 infoWindow.setContent(hs['address']);//点击以后窗口展示的内容
+                                 infoWindow.open(map, e.target.getPosition());
+                                //console.log(hs);
+                              console.log("地点名称：" + hs['address'] + "clickPosition:" + e.target.getPosition());
+							  var choosePosition = e.target.getPosition() + '';
+							  var choosePosArr = choosePosition.split(",");
+							  $("#positionName").val(hs['address']);
+							  $("#longitude").val(choosePosArr[0]);
+							  $("#latitude").val(choosePosArr[1]);
+                                 });
+                            marker.emit('click', {target: marker});
+                            }
+                    }
+                });  //关键字查询查询
+
+
+            //geocoder(e.poi.name) //关键字查询查询
+
+            }
+            //默认的点
+            marker = new AMap.Marker({  //加点
+                        map: map,
+                        position: [113.544678,34.802515]
+                    });
+
+             map.on('click', function(e) {
+                   if (marker) {
+                        marker.setMap(null);
+                        marker = null;
+                    }
+                 getLng=e.lnglat.getLng();
+                 getLat=e.lnglat.getLat();
+                 lnglatXY = [e.lnglat.getLng(), e.lnglat.getLat()]; //已知点坐标
+                   var geocoder = new AMap.Geocoder({
+                        radius: 1000,
+                        extensions: "all"
+                    });
+                    geocoder.getAddress(lnglatXY, function(status, result) {
+                        if (status === 'complete' && result.info === 'OK') {
+                            //geocoder_CallBack(result);
+                            console.log(JSON.stringify(result));
+                            address=result.regeocode.formattedAddress;
+                            // g.find(".input-group :text").val(address);
+                            console.log('您在[ '+result.regeocode.formattedAddress+' position:lng'+result.regeocode.roads[0].location.lng+' lat:'+result.regeocode.roads[0].location.lat+']的位置点击了地图！');
+							$("#positionName").val(result.regeocode.formattedAddress);
+							$("#longitude").val(result.regeocode.roads[0].location.lng);
+							$("#latitude").val(result.regeocode.roads[0].location.lat);
+                        }
+                    });
+                    marker = new AMap.Marker({  //加点
+                        map: map,
+                        position: lnglatXY
+                    });
+                    map.setFitView();
+    })
+
+
+	    $("#ruleCenter").hide();
+		$("#mapCenter").show();
+
+	});
+
+	$("#okRule").click(function(){
+	    $("#mapCenter").hide();
+	    $("#ruleCenter").show();
+
+	});
+
+	$("#cancelRule").click(function(){
+	    $("#mapCenter").hide();
+	    $("#ruleCenter").show();
+
+	});
+
+	$("#okRuleSave").click(function(){
+	    var ruleType = $("#ruleType").val();
+		var ruleName = $("#ruleName").val();
+		if (ruleName == null || ruleName == "" || ruleName.trim() == "") {
+		    alertFunc("请填写规则名称！");
+		    return;
+		}
+		var positionName = $("#positionName").val();
+		var longitude = $("#longitude").val();
+		var latitude = $("#latitude").val();
+		if (longitude == null || longitude == "" || longitude.trim() == "") {
+		    alertFunc("请选择打卡位置！");
+		    return;
+		}
+		var scope = $("#scope").val();
+		var workTime = $("#workTime").val();
+		if (workTime == null || workTime == "" || workTime.trim() == "") {
+		    alertFunc("请选择上班打卡时间！");
+		    return;
+		}
+		var offWorkTime = $("#offWorkTime").val();
+		if (offWorkTime == null || offWorkTime == "" || offWorkTime.trim() == "") {
+		    alertFunc("请选择下班打卡时间！");
+		    return;
+		}
+	    var data = {
+		    "type": ruleType,
+			"name": ruleName,
+			"department": "1",
+			"positionName": positionName,
+			"longitude": longitude,
+			"latitude":latitude,
+			"scope": scope,
+			"workTime": workTime,
+			"offWorkTime":offWorkTime};
+	    console.log(data);
+		$.ajax({
+		    url:"/signRule/add",
+			type:"POST",
+			data:JSON.stringify(data),
+			contentType:"application/json",
+			success:function(result){
+			    if ("0" == result) {
+			        refreshRules();
+			    } else {
+			        alertFunc("添加规则异常！");
+			    }
+			}
+		});
+		$("#ruleCenter").hide();
+		$("#chooseRuleCenter").show();
+		$("#addRuleBtn").show();
+	});
+
+	function refreshRules (){
+	    if ($("#hide_role").val() == "0") {
+	        $("#addRuleBtn").hide();
+	    }
+	    var ruleId = $("#hide_ruleid").val();
+	    $.ajax({
+	        url:"/signRule/query",
+	        type:"GET",
+	        success:function(result){
+	            if (result != null) {
+	                var resultObj = JSON.parse(result);
+	                var contentHtml = "";
+	                for (var i in resultObj) {
+	                    contentHtml += "<div class='filed existRule' data-storage='"+resultObj[i].id+" " + resultObj[i].type+" "+resultObj[i].name+" "+resultObj[i].position_name +" "+resultObj[i].scope+" "+resultObj[i].work_time+" "+resultObj[i].off_work_time+"'>";
+	                    if (ruleId == resultObj[i].id) {
+	                        contentHtml += "<b class='badge'>已选</b>";
+	                    } else {
+	                        contentHtml += "<b class='badge' style='display:none;'>已选</b>";
+	                    }
+                        contentHtml += "<p>" + resultObj[i].name + "</p>";
+                        contentHtml += "<p class='p-class'>时间  " + resultObj[i].work_time + "-" + resultObj[i].off_work_time + "</p>";
+                        contentHtml += "<p class='p-class'>位置  " + resultObj[i].position_name + "</p></div>"
+	                }
+	                $("#chooseRuleCenter").html("");
+	                $("#chooseRuleCenter").append(contentHtml);
+	            }
+	        }
+	    });
+	}
+
+	$("#cancelRuleSave").click(function(){
+	    $("#ruleCenter").hide();
+		$("#chooseRuleCenter").show();
+		$("#addRuleBtn").show();
+	});
+
+	$("#addRule").click(function(){
+	    $("#chooseRuleCenter").hide();
+		$("#addRuleBtn").hide();
+		$("#ruleCenter").show();
+	});
+
+	$("#chooseRuleCenter").on("click","div",function(){
+	    var datas = $(this).attr("data-storage").split(" ");
+	    var ruleId = datas[0];
+	    console.log("datas:"+datas);
+	    console.log("ruleId:"+ruleId);
+	    var employeeId = $("#hide_employee_id").val();
+	    console.log("employeeId:" + employeeId);
+	    var data = {"employeeId":employeeId,"ruleId":ruleId};
+	    var flag;
+	    $.ajax({
+	        url:"/signRule/employeeRuleModify",
+	        type: "POST",
+	        async: false,
+	        data: JSON.stringify(data),
+	        contentType: "application/json",
+	        success: function(result){
+	            if (result == "0") {
+	                flag = "0";
+	                $("#hide_ruleid").val(ruleId);
+	                $("#is_do_sign").val("");
+	                $("#positionInfop").text("");
+	                $("#positionSearchDiv").addClass("position-search");
+	                initPosition();
+	            } else {
+	                alertFunc("选择打卡规则异常！");
+	            }
+	        }
+	    });
+
+	    if (flag == "0") {
+	        $(this).find(".badge").show();
+		    $(this).siblings().find(".badge").hide();
+	    }
+
+	});
+
+	$("#doSign").click(function(){
+        var isDoSign = $("#is_do_sign").val();
+		if (isDoSign != "ok") {
+		    alertFunc("当前位置不在打卡区域！");
+		    return;
+		}
+		var signFlag = "";
+		var queryPara = {"userId":$("#hide_employee_id").val()};
+
+		$.ajax({
+		    url: "/signRecord/queryOne",
+		    type: "POST",
+		    async: false,
+		    data: JSON.stringify(queryPara),
+		    contentType: "application/json",
+		    success: function(result){
+		        if ( result == "1") {
+		            alertFunc("系统异常，请稍后再试！");
+		            return;
+		        }
+		        if ( result == "" || result == "null"){
+		             signFlag = "0";//未签到标志
+		        } else {
+		            var resultObj = JSON.parse(result);
+		            if (resultObj.signFlag == "1") {
+		                signFlag = "1";//已签到，提示是否重新签到（签到1小时内）
+		            }else if (resultObj.signFlag == "2"){
+		                signFlag = "2";//未到签退时间，提示是否签退（签到1小时后）
+		            } else if (resultObj.signFlag == "3") {
+		                signFlag = "3";//正常签退
+		            } else {
+		                signFlag = "4";//已签退过，提示是否重新签退
+		            }
+		        }
+		    }
+		});
+
+		if (signFlag == "0") {
+		    signFunc();
+		    return;
+		}
+		if(signFlag == "1"){
+		    alertFunc("已签过到，无需重签！");
+		    return;
+		}
+		if (signFlag == "2") {
+		    okCancelFunc("未到下班时间，是否签退？");
+		    return;
+		}
+		if (signFlag == "3") {
+		    //签退
+		    signOff();
+		    return;
+		}
+		if (signFlag == "4") {
+		    okCancelFunc("已签过退，是否重签？");
+		    return;
+		}
+
+
+	});
+
+	function signFunc(){
+	    var currentTime = $("#currentTime").html();
+	    var userId = $("#hide_employee_id").val();
+	    var ruleId = $("#hide_ruleid").val();
+	    var mobile = $("#hide_mobile").val();
+	    var department = $("#hide_department").val();
+	    var data = {"signWorkTime": currentTime,"userId": userId,"ruleId": ruleId,"mobile": mobile,"department": department};
+		$.ajax({
+		    url: "/signRecord/signOn",
+		    type: "POST",
+		    data: JSON.stringify(data),
+		    contentType: "application/json",
+		    success: function(result){
+		        if (result == "0") {
+		            alertFunc("签到成功！");
+		        } else {
+		            alertFunc("打卡异常，请重试！");
+		        }
+		    }
+		});
+	}
+
+	function signOff(){
+	    var currentTime = $("#currentTime").html();
+	    var userId = $("#hide_employee_id").val();
+	    var data = {"signOffWorkTime": currentTime,"userId": userId};
+		$.ajax({
+		    url: "/signRecord/signOff",
+		    type: "POST",
+		    data: JSON.stringify(data),
+		    contentType: "application/json",
+		    success: function(result){
+		        if (result == "0") {
+		            alertFunc("签退成功！");
+		        } else {
+		            alertFunc("打卡异常，请重试！");
+		        }
+		    }
+		});
+	}
+
+	$("#signOff").click(function(){
+	    $("#okCancelModal").modal("hide");
+	    signOff();
+	});
+
+
+
+	function okCancelFunc(a){
+	    $("#okCancelModal").find(".modal-body").html(a);
+	    $("#okCancelModal").modal("show");
+	}
+
+	function mobileFunc(){
+	    $("#mobileModal").modal("show");
+	}
+
+	$("#signRecordTbody").on("click","td div",function(){
+	    $(".table div").each(function(){
+		    $(this).removeClass("chooseDate")
+		});
+	    $(this).addClass("chooseDate");
+	    var signDate = $(this).attr("data-toggle");
+	    var employeeId = $("#hide_employee_id").val();
+	    var data = {"userId": employeeId,"signDate": signDate};
+	    $.ajax({
+	        url: "/signRecord/getSignWorkTime",
+	        type: "POST",
+	        data: JSON.stringify(data),
+	        contentType: "application/json",
+	        success: function(result){
+	            if (result != "1" && result != "null" && result != "[]") {
+	                var resultObj = JSON.parse(result);
+	                $("#workTimeSignHis").html(resultObj.sign_work_time);
+		            $("#offWorkTimeSignHis").html(resultObj.sign_off_work_time);
+	            } else {
+	                $("#workTimeSignHis").html("无记录");
+		            $("#offWorkTimeSignHis").html("");
+	            }
+	        }
+	    });
+
+
+
+	});
+
+	$("#editRule").click(function(){
+	    var classLength = $(this).attr("class").length;
+		console.log(classLength);
+		if (classLength > 15) {
+		    $("#addRule").show();
+		    $(this).removeClass("editIng");
+	        $(this).val("编辑");
+			$(".existRule").removeClass("newBackGroundColor");
+			$(document).off("click",".existRule");
+			$(document).on("click",".existRule",function(){
+	            $(this).find(".badge").show();
+		        $(this).siblings().find(".badge").hide();
+	        });
+			$("#okRuleSaveEdit").hide();
+			$("#ruleCenter").hide();
+			$("#deleteRuleDiv").hide();
+			$("#addRuleBtn").show();
+			$("#chooseRuleCenter").show();
+			$("#okRuleSave").show();
+
+		} else {
+		    $("#addRule").hide();
+	        $(this).addClass("editIng");
+	        $(this).val("取消");
+			$(".existRule").addClass("newBackGroundColor");
+			$(document).off("click",".existRule");
+			$(document).on("click",".existRule",function(){
+			    $("#addRuleBtn").hide();
+				$("#okRuleSave").hide();
+				$("#chooseRuleCenter").hide();
+			    $("#okRuleSaveEdit").show();
+			    $("#ruleCenter").show();
+			    $("#deleteRuleDiv").show();
+
+			    var dataCur = $(this).attr("data-storage").split(" ");
+			    $("#ruleId").val(dataCur[0]);
+			    $("#ruleType").val(dataCur[1]);
+			    $("#ruleName").val(dataCur[2]);
+			    $("#positionName").val(dataCur[3]);
+			    $("#scope").val(dataCur[4]);
+			    $("#workTime").val(dataCur[5]);
+			    $("#offWorkTime").val(dataCur[6]);
+			});
+		}
+	});
+
+    $("#okRuleSaveEdit").click(function(){
+        var ruleType = $("#ruleType").val();
+		var ruleName = $("#ruleName").val();
+		if (ruleName == null || ruleName == "" || ruleName.trim() == "") {
+		    alertFunc("请填写规则名称！");
+		    return;
+		}
+		var positionName = $("#positionName").val();
+		var longitude = $("#longitude").val();
+		var latitude = $("#latitude").val();
+		if (positionName == null || positionName == "" || positionName.trim() == "") {
+		    alertFunc("请选择打卡位置！");
+		    return;
+		}
+		var scope = $("#scope").val();
+		var workTime = $("#workTime").val();
+		if (workTime == null || workTime == "" || workTime.trim() == "") {
+		    alertFunc("请选择上班打卡时间！");
+		    return;
+		}
+		var offWorkTime = $("#offWorkTime").val();
+		if (offWorkTime == null || offWorkTime == "" || offWorkTime.trim() == "") {
+		    alertFunc("请选择下班打卡时间！");
+		    return;
+		}
+		var ruleId = $("#ruleId").val();
+	    var data = {
+	        "ruleId": ruleId,
+		    "type": ruleType,
+			"name": ruleName,
+			"department": "1",
+			"positionName": positionName,
+			"longitude": longitude,
+			"latitude":latitude,
+			"scope": scope,
+			"workTime": workTime,
+			"offWorkTime":offWorkTime};
+			$.ajax({
+			    url:"/signRule/edit",
+			    type:"POST",
+			    data:JSON.stringify(data),
+			    contentType:"application/json",
+			    success:function(result){
+			        console.log(result);
+			        if ("0" != result) {
+			            alertFunc("更新规则异常！");
+			        } else {
+			            refreshRules();
+			            $("#okRuleSaveEdit").hide();
+			            $("#ruleCenter").hide();
+			            $("#deleteRuleDiv").hide();
+			            $("#addRuleBtn").show();
+			            $("#chooseRuleCenter").show();
+			            $("#okRuleSave").show();
+			        }
+			    }
+			});
+    });
+
+    $("#deleteRule").click(function(){
+        var ruleId = $("#ruleId").val();
+        if (ruleId == "") {
+            alertFunc("此规则不可删除！");
+            return;
+        }
+        var data = {"ruleId": ruleId};
+        $.ajax({
+            url:"/signRule/delete",
+            type:"POST",
+            data: JSON.stringify(data),
+            contentType: "application/json",
+            success: function(result){
+                if (result == "0") {
+                    refreshRules();
+			        $("#okRuleSaveEdit").hide();
+			        $("#ruleCenter").hide();
+			        $("#deleteRuleDiv").hide();
+			        $("#addRuleBtn").show();
+			        $("#chooseRuleCenter").show();
+			        $("#okRuleSave").show();
+                } else {
+                    alertFunc("删除异常！");
+                }
+            }
+        });
+    });
+
+    $("#signRecordCount").click(function(){
+        var d = new Date();
+        var yearStr = d.getFullYear();
+        var month = d.getMonth() + 1;
+        var monthStr = (month <= 9) ? "0" + month : month;
+        var today = d.getDate();
+        var dd = new Date(yearStr,d.getMonth(),1);
+        var firstWeekDay = dd.getDay();
+        var data = {"yearStr": yearStr,"monthStr": monthStr,"userId": $("#hide_employee_id").val()};
+        $.ajax({
+            url: "/signRecord/getRecordByMonth",
+            type: "POST",
+            data: JSON.stringify(data),
+            contentType: "application/json",
+            success: function(result){
+                if (result != "1" && result != "null" && result != "[]") {
+                    $("#calendarTitle").html(yearStr + "年" + month + "月");
+                    signRecordCalendar(result,firstWeekDay,today);
+                }
+            }
+        });
+    });
+
+    function signRecordCalendar(data,firstWeekDay,today) {
+        var weekDay = firstWeekDay;
+        var dataObj = JSON.parse(data);
+        var contentHtml = "<tr>";
+        for (var a =0 ;a<weekDay;a++) {
+            contentHtml += "<td></td>";
+        }
+        var day = 1;
+        for (var i in dataObj) {
+            if (day < today) {
+                 if (dataObj[i].statusStr == 0 || dataObj[i].statusStr == 2) {
+                    if (dataObj[i].state == "0") {
+                        contentHtml += "<td><div class ='normal' data-toggle='"+dataObj[i].id+"'>"+ day +"</div></td>";
+                    } else {
+                        contentHtml += "<td><div class ='exception' data-toggle='"+dataObj[i].id+"'>"+ day +"</div></td>";
+                    }
+                } else {
+                    contentHtml += "<td>"+ day +"</td>";
+                }
+            } else {
+                contentHtml += "<td>"+ day +"</td>";
+            }
+            weekDay++;
+            if (weekDay == 7) {
+                contentHtml += "</tr><tr>";
+                weekDay = 0;
+            }
+            day++;
+        }
+        contentHtml += "</tr>";
+        $("#signRecordTbody").html("");
+        $("#signRecordTbody").append(contentHtml);
+
+    }
+
+
+});
+
+	function alertFunc(a){
+	    $("#alertModal2").find(".modal-body").html(a);
+		$("#alertModal2").modal("show");
+	}
+
+    function initPosition(){
+        AMap.plugin('AMap.Geolocation', function() {
+        var geolocation = new AMap.Geolocation({
+            enableHighAccuracy: true,//是否使用高精度定位，默认:true
+            timeout: 10000,          //超过10秒后停止定位，默认：5s
+            //buttonPosition:'RB',    //定位按钮的停靠位置
+            //buttonOffset: new AMap.Pixel(10, 20),//定位按钮与设置的停靠位置的偏移量，默认：Pixel(10, 20)
+            zoomToAccuracy: false,   //定位成功后是否自动调整地图视野到定位点
+
+        });
+        geolocation.getCurrentPosition(function(status,result){
+            if(status=='complete'){
+                var nowPosition = result.position + "";
+                var nowPosition = nowPosition.split(",");
+                console.log("longitude:" + nowPosition[0] + " latitude:" + nowPosition[1])
+                $("#now_longitude").val(nowPosition[0]);
+                $("#now_latitude").val(nowPosition[1]);
+                $("#positionSearchDiv").removeClass("position-search");
+                if (checkPosition()){
+                    $("#is_do_sign").val("ok");
+                    $("#positionInfop").removeClass("position-no");
+                    $("#positionInfop").addClass("position-ok");
+                    $("#positionInfop").text("你已在打卡范围");
+                } else {
+                    $("#is_do_sign").val("no");
+                    $("#positionInfop").removeClass("position-ok");
+                    $("#positionInfop").addClass("position-no");
+                    $("#positionInfop").text("你不在打卡范围");
+                }
+            }else{
+               alertFunc("定位失败！");
+            }
+        });
+        });
+    }
+
+    function checkPosition(){
+	    var nowLongitude = $("#now_longitude").val();
+	    var nowLatitude = $("#now_latitude").val();
+	    //hide_ruleid
+	    var ruleid = $("#hide_ruleid").val();
+	    if (ruleid == "" || ruleid == null) {
+	        alertFunc("请选择打卡规则！");
+	        return;
+	    }
+	    var ruleLongitude,ruleLatitude,scope;
+	    $.ajax({
+	        url: "/signRule/getById/" + ruleid,
+	        type: "GET",
+	        async: false,
+	        success: function(result){
+	            var resultObj = JSON.parse(result);
+	            ruleLongitude = resultObj[0].longitude;
+	            ruleLatitude = resultObj[0].latitude;
+	            scope = resultObj[0].scope;
+	        }
+	    });
+	    var s = getGreatCircleDistance(nowLatitude,nowLongitude,ruleLatitude,ruleLongitude);
+	    console.log("s:" + s)
+	    if (s <= scope) {
+	        return true;
+	    }
+	    return false;
+	}
+
+
+    function getGreatCircleDistance(lat1,lng1,lat2,lng2){
+        console.log("lat1:" + lat1);
+        console.log("lng1:" + lng1);
+        console.log("lat2:" + lat2);
+        console.log("lng2:" + lng2);
+	    var EARTH_RADIUS = 6378137.0;    //单位M
+        var radLat1 = getRad(lat1);
+        var radLat2 = getRad(lat2);
+
+        var a = radLat1 - radLat2;
+        var b = getRad(lng1) - getRad(lng2);
+
+        var s = 2*Math.asin(Math.sqrt(Math.pow(Math.sin(a/2),2) + Math.cos(radLat1)*Math.cos(radLat2)*Math.pow(Math.sin(b/2),2)));
+        s = s*EARTH_RADIUS;
+        s = Math.round(s*10000)/10000.0;
+
+        return s;
+    }
+
+    function getRad(d){
+	    var PI = Math.PI;
+        return d*PI/180.0;
+    }
+    function closeCurWindow(){
+        if (typeof window.WeixinJSBridge == "undefined"){
+            $(document).on('WeixinJSBridgeReady',function(){
+                WeixinJSBridge.call('closeWindow');
+            });
+        } else {
+            WeixinJSBridge.call('closeWindow');
+        }
+	}
+	function lazyCloseWindow(){
+	    setTimeout("closeCurWindow()",1000);
+	}
+</script>
+    <style>
+body{
+font-size: 50px;
+}
+.filed{
+    overflow: hidden;
+    margin-top: 10px;
+	width:100%;
+	padding:60px 0;
+    height:12%;
+    background-color: #eef1f3d1;
+}
+.filed span {
+    float: left;
+    display: block;
+    width: 30%;
+    line-height: 80px;
+}
+.filed > input{
+    float: left;
+    width: 70%;
+	width: -webkit-calc(70%);
+    height:80px;
+}
+.filed > select{
+    float: left;
+    width: calc(70%);
+	width: -webkit-calc(70%);
+}
+.add{
+    margin-bottom: -40px;
+	margin-top: -50px;
+    background-color: unset;
+}
+.mapCenter{display:none;}
+.ruleCenter{display:none;}
+.hide-class{display:none;}
+
+.mapContainer{
+    z-index:999
+    float:left;
+    width:100%;
+    height:660px;
+}
+.container{
+    width:100%;
+    height:100%;
+    padding-left:5px;
+    padding-right:10px;
+    margin:0px;
+}
+select{
+    height:50px;
+}
+.form-control{
+    height:80px;
+    font-size:50px;
+}
+.auto-item{
+    font-size:50px;
+}
+.amap-info-content{
+    font-size:30px;
+}
+.worke-time{
+    padding:60px 0;
+}
+.existRule{
+    height:auto;
+    background-color: #eef1f3d1;
+}
+.badge{
+    float:right;
+    background-color: #007effd1;
+	font-size:40px;
+	width:120px;
+	line-height: unset;
+	border-radius: 30px;
+}
+p{
+    text-align:left;
+}
+.p-class{
+    font-size:40px;
+}
+.sign{
+	background-color:unset;
+	height:45%;
+}
+.sign > p{
+    text-align:center;
+	font-size:50px;
+	background-color:unset;
+}
+.sign-circle{
+    border-radius: 50%;
+    vertical-align: middle;
+    border:0;
+    width:400px;
+    height:400px;
+    background-color:#00d0ff;
+    padding:20px 0;
+}
+.in-sign-circle{
+    border-radius: 50%;
+    vertical-align: middle;
+    border:0;
+    width:360px;
+    height:360px;
+    background-color:white;
+    padding: 140px 0;
+    text-align:center;
+}
+.table-class{
+    width: 100%;
+    font-size: 30px;
+}
+.normal{
+background-color:#00d0ff;
+border-radius: 50%;
+width:80px;
+height:80px;
+vertical-align: middle;
+text-align:center;
+margin: 0 auto;
+}
+.exception{
+background-color:#f35f24;
+border-radius: 50%;
+width:80px;
+height:80px;
+vertical-align: middle;
+text-align:center;
+margin: 0 auto;
+}
+.no-sign{
+background-color:white;
+border-radius: 50%;
+width:80px;
+height:80px;
+vertical-align: middle;
+text-align:center;
+margin: 0 auto;
+}
+th{
+text-align:center;
+}
+td{
+text-align:center;
+}
+.chooseDate{
+background-color:#007effd1;
+}
+ul > li{
+font-size:60px;
+}
+.newBackGroundColor{
+    background-color:#f7f4ab;
+}
+.position-search{
+    background-image: url(/static/image/position_ing.gif);
+    background-repeat: no-repeat;
+    background-size: 400px 400px;
+    background-position: center center;
+    opacity: 0.8;
+}
+
+.position-ok{
+    color: #337ab7;
+}
+.position-no{
+    color: #ea805f;
+}
+
+
+
+.form-control2{
+    height:80px;
+    font-size:40px;
+}
+.go-back-save{
+    overflow: hidden;
+	width:100%;
+	padding:30px 0;
+    height:12%;
+}
+.mobile-input{
+    width:100%;
+	height:100px;
+}
+.filed-input{
+    overflow: hidden;
+	width:100%;
+    height:100px;
+    background-color: white;
+}
+.edit-div{
+    width:100%;
+    font-size:50px;
+}
+</style>
+</head>
+<body>
+
+<div class="container" id="containerMain" align = "center" style = "width:100%">
+    <div class="main_nav_bottom">
+        <nav class="navbar navbar-default navbar-fixed-bottom" >
+            <div class="container" align="center" style="width:100%">
+                <ul class="nav nav-tabs nav-tabs-justified">
+                    <li class="active" style ="width:33.3%"><a data-toggle="tab" href="#home">打卡</a></li>
+                    <li style ="width:33.3%" id="signRecordCount"><a data-toggle="tab" href="#menu1">统计</a></li>
+                    <li style ="width:33.3%"><a data-toggle="tab" href="#menu2">规则</a></li>
+                </ul>
+            </div>
+        </nav>
+    </div>
+
+    <div class="tab-content" align = "center" style = "width:100%;height:100%;">
+        <div id="home" class="tab-pane fade in active" style = "height:100%">
+            <div class="filed sign position-search" id = "positionSearchDiv">
+                <p style="margin-top: 20%;"><img src="/static/image/mark_bs.png"/></p>
+                <p id="positionInfop"></p>
+                <!--<p style="font-size:30px;color: #337ab7;">上海陆鹰实业有限公司</p>-->
+            </div>
+            <div class="filed sign">
+
+                <div  class = "sign-circle" id = "doSign">
+                    <div class="in-sign-circle">
+                        <p style="text-align:center" id = "currentTime"></p>
+                        <p style="text-align:center;font-size:30px;color: #337ab7;">点我打卡</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="menu1" class="tab-pane fade">
+            <div style = "width:100%;height:100%;">
+                <div class="filed">
+                    <table class="table">
+                        <thead>
+                        <tr><th colspan="7" id="calendarTitle">2019年4月</th></tr>
+                        <tr><th>日</th><th>一</th><th>二</th><th>三</th><th>四</th><th>五</th><th>六</th></tr>
+                        </thead>
+                        <tbody id="signRecordTbody">
+                        <tr ><td></td><td>
+                            <div class ="exception">1</div>
+                        </td><td><div class ="normal">2</div></td><td><div class ="normal">3</div></td><td><div class ="normal">4</div></td>
+                            <td><div class ="no-sign">5</div></td><td><div class ="no-sign">6</div></td></tr>
+                        <tr><td><div class ="no-sign">7</div></td><td><div class ="no-sign">8</div></td><td><div class ="no-sign">9</div></td>
+                            <td><div class ="no-sign">10</div></td><td><div class ="no-sign">11</div></td><td><div class ="no-sign">12</div></td>
+                            <td><div class ="no-sign">13</div></td></tr>
+                        <tr><td>14</td><td>15</td><td>16</td><td>17</td><td>18</td><td>19</td><td>20</td></tr>
+                        <tr><td>21</td><td>22</td><td>23</td><td>24</td><td>25</td><td>26</td><td>27</td></tr>
+                        <tr><td>28</td><td>29</td><td>30</td><td></td><td></td><td></td><td></td></tr>
+                        <tbody>
+                    </table>
+                </div>
+                <div class="filed">
+                    <p style="color: #337ab7;font-size:45px;text-align:center;" id = "workTimeSignHis"></p>
+                    <p style="color: #337ab7;font-size:45px;text-align:center;" id = "offWorkTimeSignHis"></p>
+                </div>
+            </div>
+        </div>
+        <div id="menu2" class="tab-pane fade" style = "width:100%;height:100%">
+            <div class="filed add" id = "addRuleBtn">
+                <input id = "editRule" type = "button" class = "form-control" value = "编辑" style = "width:200px;"/>
+                <input id = "addRule" type = "button"  class = "form-control" value = "添加" style = "width:200px;float:right;"/>
+            </div>
+            <div id = "chooseRuleCenter" style = "width:100%;height:100%;">
+                <!--<div class="filed existRule">-->
+                <!--<b class="badge">已选</b>-->
+                <!--<p>产业园上下班考勤</p>-->
+                <!--<p class="p-class">时间  09:00-18:00</p>-->
+                <!--<p class="p-class">位置  河南省电子商务产业园</p>-->
+                <!--</div>-->
+                <!--<div class="filed existRule">-->
+                <!--<b class="badge" style="display:none;">已选</b>-->
+                <!--<p>洛阳考勤</p>-->
+                <!--<p class="p-class">时间  09:00-18:00</p>-->
+                <!--<p class="p-class">位置  洛阳产业园</p>-->
+                <!--</div>-->
+                <!--<div class="filed existRule">-->
+                <!--<b class="badge" style="display:none;">已选</b>-->
+                <!--<p>中移在线考勤</p>-->
+                <!--<p class="p-class">时间  09:00-18:00</p>-->
+                <!--<p class="p-class">位置  河南省中移在线园区</p>-->
+                <!--</div>-->
+            </div>
+            <div id = "ruleCenter" class = "ruleCenter" style = "width:100%;height:100%;">
+                <div class="filed add" align = "center">
+                    <input id = "cancelRuleSave" type = "button" class = "form-control" value = "取消" style = "width:200px;"/>
+                    <input id = "okRuleSave" type = "button" class = "form-control" value = "保存" style = "width:200px;float:right;"/>
+                    <input id = "okRuleSaveEdit" type = "button" class = "form-control" value = "保存" style = "width:200px;float:right;display:none;"/>
+                </div>
+                <div class="filed">
+                    <span>规则类型</span>
+                    <input id="ruleId" type="hidden" value=""/>
+                    <select id = "ruleType" class = "form-control"><option value = "0">上下班打卡</option><option value = "1">外出打卡</option></select>
+                </div>
+                <div class="filed">
+                    <span>规则名称</span><input id = "ruleName" type = "text" class = "form-control" placeholder = "未设置"/>
+                </div>
+                <div class="filed">
+                    <span>打卡位置</span>
+                    <input id = "positionName" type = "button" class = "form-control" placeholder = "未设置" style= "text-align:left;"/>
+                    <input id = "longitude" type = "hidden"/><input id = "latitude" type = "hidden"/>
+                </div>
+                <div class="filed">
+                    <span>打卡范围</span>
+                    <select id = "scope" class = "form-control">
+                        <option value = "100">100米</option>
+                        <option value = "200">200米</option>
+                        <option value = "300">300米</option>
+                    </select>
+                </div>
+                <div class="filed">
+                    <span>上班时间</span>
+                    <input id = "workTime" type = "time" class = "form-control worke-time" style = "width:20%"/>
+                </div>
+                <div class="filed">
+                    <span>下班时间</span>
+                    <input id = "offWorkTime" type = "time" class = "form-control worke-time" style = "width:20%"/>
+                </div>
+                <div class="filed hide-class" id="deleteRuleDiv" style="background-color: unset;margin-top: 0;">
+                    <input id = "deleteRule" type = "button" value="删 除" class = "form-control" style = "width:100%;color:#f35d5d;"/>
+                </div>
+            </div>
+            <div id = "mapCenter" class = "mapCenter">
+                <div class="filed add" align = "center">
+                    <input id = "cancelRule" type = "button" class = "form-control" value = "取消" style = "width:200px;"/>
+                    <input id = "okRule" type = "button" class = "form-control" value = "确定" style = "width:200px;float:right;"/>
+                </div>
+                <div class="filed add">
+                    <input id = "searchPosition" type = "text" class = "form-control" placeholder = "位置搜索" style = "width:100%"/>
+                </div>
+                <div id="mapContainer" class = "mapContainer">
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- 模态框（Modal） -->
+    <div class="modal fade" id="okCancelModal" tabindex="-1" role="dialog" show="true" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog" style = "margin: 60% auto;">
+            <div class="modal-content" style = "border-radius: 30px;font-size: 40px;">
+                <div class="modal-body" style="text-align: center;height:150px;padding: 50px 0;">
+                    提示内容
+                </div>
+                <div class="modal-footer">
+                    <button style="float:left;font-size: 40px;" type="button" class="btn btn-default" data-dismiss="modal">否
+                    </button>
+                    <button id = "signOff" type="button" class="btn btn-primary" style="font-size: 40px;">
+                        是
+                    </button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal -->
+    </div>
+
+    <!-- 模态框（Modal） -->
+    <div class="modal fade" id="alertModal" tabindex="-1" role="dialog" show="true" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog" style = "margin: 60% auto;">
+            <div class="modal-content" style = "border-radius: 30px;font-size: 40px;">
+                <div class="modal-body" style="text-align: center;height:150px;padding: 50px 0;">
+                    提示内容
+                </div>
+                <div class="modal-footer" style="text-align: center;">
+                    <button type="button" class="btn btn-primary"  data-dismiss="modal" style="font-size: 40px;">
+                        确定
+                    </button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal -->
+    </div>
+
+    <!-- 模态框（Modal） -->
+    <div class="modal fade" id="mobileModal" tabindex="-1" role="dialog" show="true" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog" style = "margin: 60% auto;">
+            <div class="modal-content" style = "border-radius: 30px;font-size: 40px;">
+                <div class="modal-body" style="text-align: center;height:150px;padding: 50px 0;">
+                    <input id="mobile" type="text" class = "form-control mobile-input" placeholder="请输入手机号"/>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary"  data-dismiss="modal" style="font-size: 40px;">
+                        确定
+                    </button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal -->
+    </div>
+
+
+    <input type="hidden" id="hide_openid">
+    <input type="hidden" id="hide_userName">
+    <input type="hidden" id="hide_department">
+    <input type="hidden" id="hide_role">
+    <input type="hidden" id="hide_mobile">
+    <input type="hidden" id="hide_employee_id">
+    <input type="hidden" id="hide_ruleid">
+    <input type="hidden" id="now_longitude">
+    <input type="hidden" id="now_latitude">
+    <input type="hidden" id="is_do_sign">
+</div>
+
+
+<div class = "container" id="mobileValidateDiv" style="display:none">
+    <div id = "editDiv" class="edit-div">
+        <div class="go-back">
+            <input id = "okSaveMobileValidate" type = "button"  class = "form-control" value = "保存" style = "width:200px;float:right;"/>
+        </div>
+        <div class="filed-input"><input id="mobileValidate" type="text" class = "form-control2 mobile-input" placeholder="请输入手机号"/></div>
+    </div>
+</div>
+
+<!-- 模态框（Modal） -->
+<div class="modal fade" id="alertModal2" tabindex="-1" role="dialog" show="true" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog" style = "margin: 60% auto;">
+        <div class="modal-content" style = "border-radius: 30px;font-size: 40px;">
+            <div class="modal-body" style="text-align: center;height:150px;padding: 50px 0;">
+                提示内容
+            </div>
+            <div class="modal-footer" style="text-align: center;">
+                <button type="button" class="btn btn-primary"  data-dismiss="modal" style="font-size: 40px;">
+                    确定
+                </button>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal -->
+</div>
+</body>
+</html>

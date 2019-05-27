@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.luying.weixinSystem.mapper.TPSignRecordMapper" >
+    <select id="querySign" parameterType="java.util.Map" resultType="java.util.HashMap">
+        select id,rule_id, user_id,mobile,department,
+        longitude,latitude,
+
+        ifnull(DATE_FORMAT(work_time,   '%Y-%m-%d %H:%i:%S'),"") as work_time,
+       ifnull(DATE_FORMAT(off_work_time,   '%Y-%m-%d %H:%i:%S'),"")  as off_work_time,
+        state,sign_time from tb_sign_record
+
+        <where>
+            <if test="userid !=null  and userid!=''">
+              and   user_id like  concat('%',#{userid},'%')
+            </if>
+            <if test="signtime !=null  and signtime !=''">
+              and   sign_time=#{signtime}
+            </if>
+            <if test="phone !=null  and phone!=''">
+              and  mobile LIKE  concat(#{phone},'%')
+            </if>
+        </where>
+    </select>
+
+    <select id="querySignById" parameterType="java.util.Map" resultType="java.util.HashMap">
+        select count(0) as num ,length(state)  as lg  from tb_sign_record where id= #{id,jdbcType=VARCHAR}
+    </select>
+
+    <insert id="insertSign" parameterType="map" >
+        insert into tb_sign_record (id,rule_id, user_id,mobile,department,
+        longitude,latitude,work_time,state,sign_time)
+
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+                #{id,jdbcType=VARCHAR},
+                #{ruleid,jdbcType=INTEGER},
+                #{userid,jdbcType=VARCHAR},
+                #{phone,jdbcType=VARCHAR},
+            #{department,jdbcType=CHAR},
+            #{xpoint },
+            #{ypoint },
+            #{work_time,jdbcType=DATE},
+            #{state,jdbcType=CHAR},
+            #{sign_time,jdbcType=VARCHAR}
+
+        </trim>
+    </insert>
+
+    <update id="updateSign" parameterType="Map">
+        update tb_sign_record
+            <set>
+            <if test="off_work_time != null">
+                off_work_time=#{off_work_time,jdbcType=DATE},
+            </if>
+
+            <if test="state != null">
+                state=CONCAT(SUBSTR(state,1,1),#{state,jdbcType=VARCHAR}),
+            </if>
+        </set>
+        where
+        id=#{id,jdbcType=VARCHAR}
+
+    </update>
+
+</mapper>

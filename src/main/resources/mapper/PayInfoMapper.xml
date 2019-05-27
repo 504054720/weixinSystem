@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.luying.weixinSystem.mapper.PayInfoMapper" >
+
+    <insert id="insert" parameterType="java.util.List" >
+        INSERT INTO tb_pay_info (
+        id,
+        id_card,
+        name,
+        department,
+        level,
+        base_pay,
+        benefit_pay,
+        subsidy_pay,
+        bonus_pay,
+        up_pay,
+        day_work_over,
+        weekday_work_over,
+        item_bonus_pay,
+        kpi_bonus_pay,
+        telephone_pay,
+        attendance_deductions,
+        discipline_deductions,
+        should_send_pay,
+        instead_deductions,
+        pension_pay,
+        unemployment_insurance,
+        medical_insurance,
+        accumulation_fund,
+        personal_taxes,
+        actual_send_pay,
+        years_month,
+        create_time)
+        VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.id},
+            #{item.idCard},
+            #{item.name},
+            #{item.department},
+            #{item.level},
+            #{item.basePay},
+            #{item.benefitPay},
+            #{item.subsidyPay},
+            #{item.bonusPay},
+            #{item.upPay},
+            #{item.dayWorkOver},
+            #{item.weekdayWorkOver},
+            #{item.itemBonusPay},
+            #{item.kpiBonusPay},
+            #{item.telephonePay},
+            #{item.attendanceDeductions},
+            #{item.disciplineDeductions},
+            #{item.shouldSendPay},
+            #{item.insteadDeductions},
+            #{item.pensionPay},
+            #{item.unemploymentInsurance},
+            #{item.medicalInsurance},
+            #{item.accumulationFund},
+            #{item.personalTaxes},
+            #{item.actualSendPay},
+            #{item.yearsMonth},
+            #{item.createTime})
+        </foreach>
+    </insert>
+    <select id="queryForValidate" parameterType="java.util.HashMap" resultType="java.lang.Integer">
+        select count(*) from tb_pay_info where id_card = #{idCard} and years_month = #{yearsMonth}
+    </select>
+
+    <select id="queryYearMonth" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        SELECT DISTINCT
+        t3.years_month
+        FROM
+        tb_wx_open t1
+        INNER JOIN tb_employee_base t2 ON t1.mobile = t2.mobile
+        INNER JOIN tb_pay_info t3 ON t2.id_card = t3.id_card
+        WHERE
+        t1.openid = #{openid}
+        AND t3.years_month LIKE CONCAT(#{yearStr}, "%")
+        ORDER BY
+        t3.years_month
+    </select>
+
+    <select id="querySalaryInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        SELECT DISTINCT
+        t3.id_card,t3.`name`,t3.department,t3.`level`,t3.base_pay,t3.benefit_pay,t3.subsidy_pay,t3.bonus_pay,
+        t3.up_pay,t3.day_work_over,t3.weekday_work_over,t3.item_bonus_pay,t3.kpi_bonus_pay,t3.telephone_pay,
+        t3.attendance_deductions,t3.discipline_deductions,t3.should_send_pay,t3.instead_deductions,
+        t3.pension_pay,t3.unemployment_insurance,t3.medical_insurance,t3.accumulation_fund,t3.personal_taxes,
+        t3.actual_send_pay
+        FROM
+        tb_wx_open t1
+        INNER JOIN tb_employee_base t2 ON t1.mobile = t2.mobile
+        INNER JOIN tb_pay_info t3 ON t2.id_card = t3.id_card
+        WHERE
+        t1.openid = #{openid}
+        AND t3.years_month = #{yearMonth}
+        ORDER BY
+        t2.is_main_card
+    </select>
+</mapper>

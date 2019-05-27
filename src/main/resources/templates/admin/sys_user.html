@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>上海澄美</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="robots" content="all,follow">
+    <!-- Bootstrap CSS-->
+    <link rel="stylesheet" href="/static/vendor/bootstrap/css/bootstrap.min.css">
+    <!-- Font Awesome CSS-->
+    <link rel="stylesheet" href="/static/vendor/font-awesome/css/font-awesome.min.css">
+    <!-- theme stylesheet-->
+    <link rel="stylesheet" href="/static/css/style.default.css" id="theme-stylesheet">
+    <!-- Favicon-->
+    <!-- link rel="shortcut icon" href="img/favicon.ico" -->
+    <script src="/static/js/jquery.min.js"></script>
+    <script src="/static/js/jquery.form.js"></script>
+    <script src="/static/js/json2.min.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="/static/css/index.css"/>
+    <script type="text/javascript">
+
+    $(function(){
+
+        loadUserList();
+        loadDepartmentList();
+        loadRoleList();
+
+
+        function loadUserList(){
+            $.ajax({
+                url: "/sysAdmin/getUserList",
+                type: "GET",
+                success: function(result){
+                    if (result != "-1") {
+                        if (result != "" && result != "null" && result != "[]") {
+                            var resObj = JSON.parse(result);
+                            var dataStr = "";
+                            for (var i in resObj) {
+                                dataStr += "<tr><td>";
+                                dataStr += "<input type='radio' id = '"+resObj[i].id+"'  name='userChecked' class='gcs-checkbox'/><label for='"+resObj[i].id+"'></label></td>";
+                                dataStr += "<td>"+resObj[i].username+"</td>";
+                                dataStr += "<td>"+resObj[i].name+"</td>";
+                                dataStr += "<td>"+resObj[i].description+"</td>";
+                                dataStr += "<td>"+resObj[i].departmentName+"</td></tr>";
+                            }
+                            $("#userListBody").html("");
+                            $("#userListBody").append(dataStr);
+                        } else {
+                            $("#userListBody").html("");
+                            $("#userListBody").append("<tr><td colspan='5'>暂无数据！</td></tr>");
+                        }
+                    } else {
+                            $("#userListBody").html("");
+                            $("#userListBody").append("<tr><td colspan='5'>系统异常！</td></tr>");
+                    }
+                }
+            });
+        }
+
+        function loadRoleList(){
+            $.ajax({
+                url: "/sysAdmin/getRoleListForSelect",
+                type: "GET",
+                success: function(result){
+                console.log("roleList:"+result);
+                    if (result != "-1") {
+                        if (result != "" && result != "null" && result != "[]") {
+                            var resObj = JSON.parse(result);
+                            var dataStr = "<option value='0'>请选择</option>";
+                            for (var i in resObj) {
+                                dataStr += "<option value='"+resObj[i].id+"'>"+resObj[i].description+"</option>";
+                            }
+                            $("#roleSelect").html("");
+                            $("#roleSelect").append(dataStr);
+                        }
+                    }
+                }
+            });
+        }
+        function loadDepartmentList(){
+            $.ajax({
+                url: "/sysAdmin/getDepartmentList",
+                type: "GET",
+                success: function(result){
+                console.log("departmentList:"+result);
+                    if (result != "-1") {
+                        if (result != "" && result != "null" && result != "[]") {
+                            var resObj = JSON.parse(result);
+                            var dataStr = "<option value='0'>请选择</option>";
+                            for (var i in resObj) {
+                                dataStr += "<option value='"+resObj[i].id+"'>"+resObj[i].name+"</option>";
+                            }
+                            $("#departmentSelect").html("");
+                            $("#departmentSelect").append(dataStr);
+                        }
+                    }
+                }
+            });
+        }
+
+            $("#addUser").click(function(){
+                clean();
+                $("#editSave").hide();
+                $("#addSave").show();
+                $("#myModalLabel").html("添加用户");
+                $("#myModal").show();
+            });
+
+            $("#closeModal").click(function(){
+                $("#myModal").hide();
+            });
+            $(".close").click(function(){
+                $("#myModal").hide();
+            });
+
+
+            $("#editUser").click(function(){
+                var userId = $("input[name='userChecked']:checked").prop("id");
+                console.log("userId:" + userId);
+                if (typeof(userId) == "undefined" || userId == "") {
+                    alert("请选择一条数据编辑！");
+                    return;
+                }
+                $("#username").prop("disabled",true);
+                $("#addSave").hide();
+                $("#editSave").show();
+                $("#myModalLabel").html("编辑用户");
+                $("#myModal").show();
+                $.ajax({
+                    url: "/sysAdmin/getUserOne/" + userId,
+                    type: "GET",
+                    success: function(result){
+                        if (result != "" && result != "1" && result != "null") {
+                            var resultObj = JSON.parse(result);
+                            $("#username").val(resultObj.username);
+                            $("#name").val(resultObj.name);
+                            $("#roleSelect").val(resultObj.roleId);
+                            $("#departmentSelect").val(resultObj.department);
+                        } else {
+                            alert("系统异常！");
+                        }
+                    }
+                });
+            });
+
+            $("#delUser").click(function(){
+                var userId = $("input[name='userChecked']:checked").prop("id");
+                if (typeof(userId) == "undefined" || userId == "") {
+                    alert("请选择一条要删除的数据！");
+                    return;
+                }
+                $.ajax({
+                    url: "/sysAdmin/delUser/" + userId,
+                    type: "GET",
+                    success: function(result){
+                        if (result == "0") {
+                            loadUserList();
+                        }else {
+                            alert("删除异常！");
+                        }
+                    }
+                });
+            });
+
+            $("#addSave").click(function(){
+                save("add");
+            });
+            $("#editSave").click(function(){
+                save("edit");
+            });
+
+
+            function save(option){
+                var username = $("#username").val();
+                if (username.trim() == "") {
+                    alert("账号不可为空！");
+                    return;
+                }
+                var name = $("#name").val();
+                if (name.trim() == "") {
+                    alert("姓名不可为空！");
+                    return;
+                }
+                var roleId = $("#roleSelect").val();
+                if (roleId == "0" || roleId == "") {
+                    alert("请选择角色！");
+                    return;
+                }
+                var department = $("#departmentSelect").val();
+                if (department == "0" || department == "") {
+                    alert("请选择部门！");
+                    return;
+                }
+                var data = {
+                    "username": username,
+                    "name": name,
+                    "roleId": roleId,
+                    "department": department};
+                var url;
+                if (option == "add") {
+                    url = "/sysAdmin/addUser";
+                }
+                if (option == "edit") {
+                    url = "/sysAdmin/editUser";
+                    data.userId = $("input[name='userChecked']:checked").prop("id");
+                }
+                console.log(JSON.stringify(data));
+                $.ajax({
+                    url: url,
+                    type: "POST",
+                    data: JSON.stringify(data),
+                    contentType: "application/json",
+                    success: function(result){
+                        if (result == "0") {
+                            $("#myModal").hide();
+                            loadUserList();
+                        } else if (result == "1") {
+                            alert("账号已存在！");
+                        } else {
+                            alter("保存异常！");
+                        }
+                    }
+                });
+            }
+
+            function clean(){
+                $("#username").prop("disabled",false);
+                $("#username").val("");
+                $("#name").val("");
+                $("#roleSelect").val("0");
+                $("#departmentSelect").val("0");
+            }
+
+
+         });
+    </script>
+
+    <style>
+.my-modal{
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1050;
+    display: none;
+    overflow: hidden;
+    -webkit-overflow-scrolling: touch;
+    outline: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+.fade{
+    opacity: 1;
+    -webkit-transition: opacity .15s linear;
+    -o-transition: opacity .15s linear;
+    transition: opacity .15s linear;
+}
+
+.fade.in {
+  opacity: 1;
+}
+.modal-content{
+    border-radius: 10px;
+}
+.form-control-label {
+    font-size: .9rem;
+    color: #777;
+    padding: 7px 0;
+    text-align: right;
+}
+</style>
+</head>
+<body>
+<div class="content-inner">
+    <!-- Page Header-->
+    <header class="page-header">
+        <div class="container-fluid">
+            <h2 class="no-margin-bottom">用户管理</h2>
+        </div>
+    </header>
+    <!-- Dashboard Counts Section-->
+    <section class="dashboard-counts no-padding-bottom" style="padding-top: 10px;">
+        <!--iframe class="row bg-white has-shadow" src="tables.html" style="width:100%;height:260px;"/-->
+        <div class="container-fluid">
+
+            <div class="row bg-white has-shadow" style="padding: 10px 0;">
+                <form id="uploadForm" action="/employee/import" method="post" enctype="multipart/form-data" style="width:100%">
+
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <td colspan="5" align="right">
+                                <input type="button" id="addUser" value="新增" class="btn btn-default"/>
+                                <input type="button" id="editUser" value="编辑" class="btn btn-default"/>
+                                <input type="button" id="delUser" value="删除" class="btn btn-default"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th></th>
+                            <th>账号</th>
+                            <th>姓名</th>
+                            <th>角色</th>
+                            <th>部门</th>
+                        </tr>
+                        </thead>
+                        <tbody id="userListBody">
+                        </tbody>
+                    </table>
+                </form>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- 模态框（Modal） -->
+<div class="my-modal" id="myModal" >
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="myModalLabel">
+                    添加用户
+                </h4>
+                <button type="button" class="close" aria-hidden="true">
+                    &times;
+                </button>
+
+            </div>
+            <div class="modal-body">
+                <div class="form-group row">
+                    <label class="col-sm-3 form-control-label">账号</label>
+                    <div class="col-sm-9">
+                        <input type="text" class="form-control" id="username">
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-3 form-control-label">姓名</label>
+                    <div class="col-sm-9">
+                        <input type="text" class="form-control" id="name">
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-3 form-control-label">角色</label>
+                    <div class="col-sm-9">
+                        <select class="form-control mb-3" id="roleSelect">
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group row">
+                    <label class="col-sm-3 form-control-label">部门</label>
+                    <div class="col-sm-9">
+                        <select class="form-control mb-3" id="departmentSelect">
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" id="closeModal">关闭</button>
+                <button type="button" class="btn btn-primary" id="addSave">保存</button>
+                <button type="button" class="btn btn-primary" id="editSave" style="display:none;">保存</button>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal -->
+</div>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.luying.weixinSystem.mapper.SysRoleMapper">
+    <select id="queryOne" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        select id,available,description,role from sys_role
+        <where>
+            <if test="id != '' and id != null">
+                and id = #{id}
+            </if>
+            <if test="description != '' and description != null">
+                and description = #{description}
+            </if>
+        </where>
+    </select>
+    <insert id="insert" parameterType="java.util.HashMap">
+        insert into sys_role(id,available,description,role) values(#{id},#{available},#{description},#{role})
+    </insert>
+    <select id="queryList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        select id,available,description,role from sys_role
+    </select>
+    <select id="queryPermissionByRole" parameterType="java.lang.String" resultType="java.util.HashMap">
+        SELECT
+        t2.id
+        FROM
+        sys_role_permission t1
+        INNER JOIN sys_permission t2 ON t1.permission_id = t2.id
+        WHERE
+        t1.role_id = #{id}
+        ORDER BY t2.id
+    </select>
+    <delete id="delPermissionByRole" parameterType="java.lang.String">
+        delete from sys_role_permission where role_id = #{id}
+    </delete>
+    <insert id="insertRolePermission" parameterType="java.util.List">
+        insert into sys_role_permission(permission_id,role_id) values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.permissionId},#{item.roleId})
+        </foreach>
+    </insert>
+    <update id="update" parameterType="java.util.HashMap">
+        update sys_role set description = #{description} where id = #{id}
+    </update>
+    <delete id="delete" parameterType="java.lang.String">
+        delete from sys_role where id = #{id}
+    </delete>
+</mapper>

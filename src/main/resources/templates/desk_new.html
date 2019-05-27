@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>打卡</title>
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <script src="/static/js/jquery.min.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+    <script type = "text/javascript">
+    $(function(){
+
+        $(".app_index_item").click(function(){
+            window.location.href = "/templates/sign/sign.html";
+        });
+    });
+
+//background-position: -332px -455px;
+    </script>
+    <style>
+.app_index_item_top{
+    display: table-cell;
+    width: 160px;
+    height: 160px;
+    vertical-align: middle;
+    font-size: 0;
+    padding: 50px 50px 0px 50px;
+}
+.app_item_sign_appIcon{
+    background-image: url(/static/image/sign.png);
+
+    width: 160px;
+    height: 160px;
+	float: none;
+    margin-right: 0;
+    border-radius: 40px;
+	opacity: 1;
+	display: inline-block;
+    overflow: hidden;
+    line-height: 0;
+}
+.app_index_item_botom{
+font-size:40px;
+}
+</style>
+</head>
+<body>
+
+<div class="container" align = "center" style = "width:100%">
+
+    <div class="app_index_item" url="">
+        <div class="app_index_item_top">
+            <span class="app_item_sign_appIcon"></span>
+        </div>
+        <div class="app_index_item_botom">
+            <div class="app_index_item_title">打卡</div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

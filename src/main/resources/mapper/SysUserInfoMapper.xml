@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.luying.weixinSystem.mapper.SysUserInfoMapper">
+    <select id="query" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        select id,username,name,password,salt,state from sys_user_info WHERE username = #{username}
+    </select>
+    <select id="queryOne" parameterType="java.lang.String" resultType="java.util.HashMap">
+        SELECT
+        t1.id,
+        t1.username,
+        t1.`name`,
+        t3.id roleId,
+        t3.description,
+        t1.department
+        FROM
+        sys_user_info t1
+        INNER JOIN sys_user_role t2 ON t1.id = t2.user_id
+        INNER JOIN sys_role t3 ON t2.role_id = t3.id
+        WHERE t1.id = #{id}
+    </select>
+    <select id="queryList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        SELECT
+        t1.id,
+        t1.username,
+        t1.`name`,
+        t3.id roleId,
+        t3.description,
+        t1.department,
+        t4.name departmentName
+        FROM
+        sys_user_info t1
+        INNER JOIN sys_user_role t2 ON t1.id = t2.user_id
+        INNER JOIN sys_role t3 ON t2.role_id = t3.id
+        INNER JOIN tb_department t4 ON t1.department = t4.id
+        ORDER BY t1.id,t1.username
+    </select>
+    <insert id="insert" parameterType="java.util.HashMap">
+        insert into sys_user_info(id,username,name,password,salt,state,department) values
+            (#{id},#{username},#{name},#{password},#{salt},#{state},#{department})
+    </insert>
+    <update id="update" parameterType="java.util.HashMap">
+        update sys_user_info 
+        <set>
+            <if test="name != '' and name != null">
+                name = #{name},
+            </if>
+            <if test="password != '' and password != null">
+                password = #{password},
+            </if>
+            <if test="salt != '' and salt != null">
+                salt = #{salt},
+            </if>
+            <if test="state != '' and state != null">
+                state = #{state},
+            </if>
+            <if test="department != '' and department != null">
+                department = #{department},
+            </if>
+        </set>
+        where id = #{userId}
+    </update>
+    <delete id="delete" parameterType="java.lang.String">
+        delete from sys_user_info where id = #{userId}
+    </delete>
+    <select id="queryMenuList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        SELECT
+        t1.username,t4.id,t4.`name` menuName,t4.url
+        FROM
+        sys_user_info t1
+        INNER JOIN sys_user_role t2 ON t1.id = t2.user_id
+        INNER JOIN sys_role_permission t3 ON t2.role_id = t3.role_id
+        INNER JOIN sys_permission t4 ON t3.permission_id = t4.id
+        WHERE t1.username = #{username}
+        ORDER BY t4.id
+    </select>
+    <select id="queryInfo" parameterType="java.lang.String" resultType="java.util.HashMap">
+        SELECT
+        t1.id userId,
+        t1.username username,
+        t1.`name`cnName,
+        t1.state,
+        t1.department departmentId,
+        t2.`name` departmentName,
+        t3.role_id roleId,
+        t4.description roleName
+        FROM
+        sys_user_info t1
+        INNER JOIN tb_department t2 ON t1.department = t2.id
+        INNER JOIN sys_user_role t3 ON t1.id = t3.user_id
+        INNER JOIN sys_role t4 ON t3.role_id = t4.id
+        WHERE
+        username = #{username}
+    </select>
+</mapper>

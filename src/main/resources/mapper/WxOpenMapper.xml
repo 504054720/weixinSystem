@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.luying.weixinSystem.mapper.WxOpenMapper">
+    <select id="queryCount" parameterType="java.util.HashMap" resultType="java.lang.Integer">
+        select count(*) from tb_wx_open where openid = #{openid}
+    </select>
+    <insert id="add" parameterType="java.util.HashMap">
+        insert into tb_wx_open(openid,mobile,headimgurl,nickname,binding_state,create_time)
+            values(#{openid},#{mobile},#{headimgurl},#{nickname},#{bindingState},#{createTime})
+    </insert>
+    <update id="update" parameterType="java.util.HashMap">
+        update tb_wx_open
+        <set>
+            <if test="mobile != '' and mobile != null">
+                mobile = #{mobile},
+            </if>
+            <if test="headimgurl != '' and headimgurl != null">
+                headimgurl = #{headimgurl},
+            </if>
+            <if test="nickname != '' and nickname != null">
+                nickname = #{nickname},
+            </if>
+            <if test="bindingState != '' and bindingState != null">
+                binding_state = #{bindingState},
+            </if>
+        </set>
+        where openid = #{openid}
+    </update>
+    <select id="queryMobile" parameterType="java.util.HashMap" resultType="java.lang.String">
+        select mobile from tb_wx_open where openid = #{openid}
+    </select>
+    <delete id="delete" parameterType="java.lang.String">
+        delete from tb_wx_open where openid = #{openid}
+    </delete>
+    <select id="queryForList" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        SELECT openid,mobile,headimgurl,nickname,binding_state,create_time
+        FROM `tb_wx_open`
+        <where>
+            <if test="bindingState != '' and bindingState != null">
+                 and binding_state = #{bindingState}
+            </if>
+            <if test="nickName != '' and nickName != null">
+                and nickname like CONCAT('%',#{nickName},'%')
+            </if>
+        </where>
+        ORDER BY create_time DESC LIMIT 0,4
+    </select>
+
+    <update id="updateByMobile" parameterType="java.util.HashMap">
+        update tb_wx_open set binding_state = #{bindingState}  where mobile = #{mobile}
+    </update>
+</mapper>

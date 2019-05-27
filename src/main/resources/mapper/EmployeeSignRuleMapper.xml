@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.luying.weixinSystem.mapper.EmployeeSignRuleMapper" >
+    <insert id="insert" parameterType="java.util.HashMap">
+        insert into tb_employee_sign_rule(userid,ruleid) values(#{employeeId},#{ruleId})
+    </insert>
+    <update id="update" parameterType="java.util.HashMap">
+        update tb_employee_sign_rule set ruleid = #{ruleId} where userid = #{employeeId}
+    </update>
+    <select id="query" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        select ruleid from tb_employee_sign_rule where userid = #{employeeId}
+    </select>
+</mapper>

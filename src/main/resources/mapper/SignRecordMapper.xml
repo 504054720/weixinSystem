@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.luying.weixinSystem.mapper.SignRecordMapper">
+    <insert id="insert" parameterType="java.util.HashMap">
+        insert into tb_sign_record(id,rule_id,user_id,mobile,department,sign_work_time,sign_off_work_time,sign_date)
+            values(#{id},#{ruleId},#{userId},#{mobile},#{department},#{signWorkTime},#{signOffWorkTime},#{signDate})
+    </insert>
+    <select id="queryOne" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        select rule_id,user_id,mobile,DATE_FORMAT(sign_work_time,'%H:%i:%s') sign_work_time,DATE_FORMAT(sign_off_work_time,'%H:%i:%s') sign_off_work_time,sign_date,state
+        from tb_sign_record where user_id = #{userId} and sign_date = #{signDate}
+    </select>
+    <update id="update">
+        update tb_sign_record set sign_off_work_time = #{signOffWorkTime} where user_id = #{userId} and sign_date = #{signDate}
+    </update>
+    <select id="queryDayStatus" parameterType="java.util.HashMap" resultType="java.lang.String">
+        select status from tb_calendar where id = #{signDate}
+    </select>
+    <select id="queryAllYesterday" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        select id,rule_id,user_id,DATE_FORMAT(sign_work_time,'%H:%i:%s') sign_work_time,DATE_FORMAT(sign_off_work_time,'%H:%i:%s') sign_off_work_time,sign_date
+         from tb_sign_record where sign_date = #{signDate} and state is null
+    </select>
+    <update id="updateState" parameterType="java.util.HashMap">
+        update tb_sign_record set state = #{state} where id = #{signRecordId}
+    </update>
+    <select id="queryRecordByMonth" parameterType="java.util.HashMap" resultType="java.util.HashMap">
+        SELECT
+        t1.id,
+        t1.`year` yearStr,
+        t1.`month` monthStr,
+        t1.`status` statusStr,
+        t2.state
+        FROM
+        tb_calendar t1
+        LEFT JOIN tb_sign_record t2 ON t1.id = t2.sign_date
+        AND t2.user_id = #{userId}
+        WHERE
+        t1.`year` = #{yearStr}
+        AND t1.`month` = #{monthStr}
+        ORDER BY
+        t1.id
+    </select>
+</mapper>

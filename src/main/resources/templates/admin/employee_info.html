@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>上海澄美</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="robots" content="all,follow">
+    <!-- Bootstrap CSS-->
+    <link rel="stylesheet" href="/static/vendor/bootstrap/css/bootstrap.min.css">
+    <!-- Font Awesome CSS-->
+    <link rel="stylesheet" href="/static/vendor/font-awesome/css/font-awesome.min.css">
+    <!-- theme stylesheet-->
+    <link rel="stylesheet" href="/static/css/style.default.css" id="theme-stylesheet">
+    <!-- Favicon-->
+    <!-- link rel="shortcut icon" href="img/favicon.ico" -->
+    <script src="/static/js/jquery.min.js"></script>
+    <script src="/static/js/jquery.form.js"></script>
+    <script src="/static/js/json2.min.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="/static/css/index.css"/>
+    <script type="text/javascript">
+
+        $(function(){
+
+        loadEmployeeList();
+        loadDepartmentList();
+
+            $("#upload").click(function(){
+                var fileName = $("#file").val();
+                if (fileName == "") {
+                    alert("请选择上传文件！");
+                    $("#upload").removeAttr("disabled");
+                    return;
+                }
+                if (fileName.indexOf("\\") != -1){
+                    fileName = fileName.substring(fileName.lastIndexOf("\\") + 1);
+                }
+
+                var suffix = fileName.substring(fileName.lastIndexOf("."));
+                if (suffix != ".xls" && suffix != ".xlsx") {
+                    alert("请上传.xls或.xlsx格式的文件！");
+                    $("#upload").removeAttr("disabled");
+                    return;
+                }
+                $("#uploadForm").ajaxSubmit({
+                    type:"POST",
+                    url:"/employee/import",
+                    success:function(result){
+                       // var res = JSON.parse(result);
+                        if (result == "0") {
+                            alert("导入成功！");
+                            loadEmployeeList();
+                        } else {
+                            alert("导入失败！");
+                        }
+                        }
+                    });
+            });
+
+            function loadEmployeeList(){
+                $("#employeeList").html("")
+                var url = "/employee/queryAll";
+                $.get( url ,function(result,status){
+                    if (status != "success" ) {
+                        alert("获取员工信息异常！");
+                        return;
+                    }
+                    var resultObj = JSON.parse(result);
+                    for ( var i in resultObj) {
+                        var trStr = "<tr>";
+                            trStr += "<td><input type='checkbox' id = '"+resultObj[i].id+"'  name='checkedInfos' value='"+resultObj[i].id+"'  class='gcs-checkbox'/>";
+                            trStr += "<label for='"+resultObj[i].id+"'></label></td>";
+                            trStr += "<td>"+ resultObj[i].name +"</td>";
+                            trStr += "<td>"+ resultObj[i].id_card +"</td>";
+                            trStr += "<td>"+ resultObj[i].mobile +"</td>";
+                            if (resultObj[i].is_main_card == "0") {
+                                trStr += "<td>主卡</td>";
+                            } else {
+                                trStr += "<td>副卡</td>";
+                            }
+                            trStr += "<td>"+resultObj[i].department+"</td>";
+                            if (resultObj[i].role == "1") {
+                                trStr += "<td>管理</td>";
+                            } else {
+                                trStr += "<td>员工</td>";
+                            }
+                        $("#employeeList").append(trStr)
+                    }
+
+                });
+            }
+
+            $("#addEmployee").click(function(){
+                clean();
+                $("#editSave").hide();
+                $("#addSave").show();
+                $("#myModalLabel").html("添加员工");
+                $("#myModal").show();
+               // $("#myModal").addClass("in");
+            });
+
+            $("#closeModal").click(function(){
+                $("#myModal").hide();
+            });
+            $(".close").click(function(){
+                $("#myModal").hide();
+            });
+
+
+            $("#editEmployee").click(function(){
+                var checkedCount = 0;
+                var checkedId;
+                $.each($("input[name='checkedInfos']:checked"),function(){
+                    checkedCount ++;
+                    console.log($(this).val());
+                    checkedId = $(this).val();
+                });
+                if (checkedCount != 1) {
+                    alert("请选择一条数据编辑！");
+                    return;
+                }
+                $("#hideEmployeeId").val(checkedId);
+                $("#addSave").hide();
+                $("#editSave").show();
+                $("#myModalLabel").html("编辑员工");
+                $("#myModal").show();
+                $.ajax({
+                    url: "/employee/queryOne/" + checkedId,
+                    type: "GET",
+                    success: function(result){
+                        if (result != "" && result != "1" && result != "null") {
+                            var resultObj = JSON.parse(result);
+                            $("#employeeName").val(resultObj.employeeName);
+                            $("#employeeCard").val(resultObj.id_card);
+                            $("#employeeMobile").val(resultObj.mobile);
+                            $("#isMainCard").val(resultObj.is_main_card);
+                            $("#departmentSelect").val(resultObj.department);
+                            $("#employeeRole").val(resultObj.role);
+                        } else {
+                            alert("系统异常！");
+                        }
+                    }
+                });
+            });
+
+            $("#delEmployee").click(function(){
+                var checkedCount = 0;
+                var checkedIds = new Array();
+                $.each($("input[name='checkedInfos']:checked"),function(){
+                    checkedIds[checkedCount] = $(this).val();
+                    checkedCount ++;
+                });
+                if (checkedIds.length == 0) {
+                    alert("请选择要删除的数据！");
+                    return;
+                }
+                var data = {"checkedIds": checkedIds}
+                console.log(JSON.stringify(checkedIds));
+                $.ajax({
+                    url: "/employee/del",
+                    type: "POST",
+                    data: JSON.stringify(data),
+                    contentType: "application/json",
+                    success: function(result){
+                        if (result == "0") {
+                            loadEmployeeList();
+                        }else {
+                            alert("删除异常！");
+                        }
+                    }
+                });
+            });
+
+            $("#addSave").click(function(){
+                save("add");
+            });
+            $("#editSave").click(function(){
+                save("edit");
+            });
+
+
+            function save(option){
+                var employeeName = $("#employeeName").val();
+                if (employeeName.trim() == "") {
+                    alert("姓名不可为空！");
+                    return;
+                }
+                var regIdCard = /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/;
+                var employeeCard = $("#employeeCard").val();
+                if (!regIdCard.test(employeeCard)) {
+                    alert("身份证号格式错误！");
+                    return;
+                }
+                var regMobile = /^[1][3,4,5,7,8][0-9]{9}$/;
+                var employeeMobile = $("#employeeMobile").val();
+                if (!regMobile.test(employeeMobile)) {
+                    alert("手机号格式错误！");
+                    return;
+                }
+                var isMainCard = $("#isMainCard").val();
+               // var department = $("#departmentSelect").val();
+                var employeeRole = $("#employeeRole").val();
+                var data = {
+                    "name": employeeName,
+                    "idCard": employeeCard,
+                    "mobile": employeeMobile,
+                    "isMainCard": isMainCard,
+                    "role": employeeRole};
+                var url;
+                if (option == "add") {
+                    url = "/employee/addOne";
+                }
+                if (option == "edit") {
+                    url = "/employee/editOne";
+                    data.id = $("#hideEmployeeId").val();
+                }
+                console.log(JSON.stringify(data));
+                $.ajax({
+                    url: url,
+                    type: "POST",
+                    data: JSON.stringify(data),
+                    contentType: "application/json",
+                    success: function(result){
+                        if (result == "0") {
+                            $("#myModal").hide();
+                            loadEmployeeList();
+                        } else if (result == "1") {
+                            alert("员工已存在！");
+                        } else {
+                            alter("保存异常！");
+                        }
+                    }
+                });
+            }
+
+            function clean(){
+                $("#employeeName").val("");
+                $("#employeeCard").val("");
+                $("#employeeMobile").val("");
+                $("#isMainCard").val("0");
+                //$("#departmentSelect").val("0");
+                $("#employeeRole").val("0");
+            }
+
+        function loadDepartmentList(){
+            $.ajax({
+                url: "/sysAdmin/getDepartmentList",
+                type: "GET",
+                success: function(result){
+                console.log("departmentList:"+result);
+                    if (result != "-1") {
+                        if (result != "" && result != "null" && result != "[]") {
+                            var resObj = JSON.parse(result);
+                            var dataStr = "<option value='0'>请选择</option>";
+                            for (var i in resObj) {
+                                dataStr += "<option value='"+resObj[i].id+"'>"+resObj[i].name+"</option>";
+                            }
+                            $("#departmentSelect").html("");
+                            $("#departmentSelect").append(dataStr);
+                        }
+                    }
+                }
+            });
+        }
+
+
+         });
+    </script>
+
+<style>
+.my-modal{
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1050;
+    display: none;
+    overflow: hidden;
+    -webkit-overflow-scrolling: touch;
+    outline: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+.fade{
+    opacity: 1;
+    -webkit-transition: opacity .15s linear;
+    -o-transition: opacity .15s linear;
+    transition: opacity .15s linear;
+}
+
+.fade.in {
+  opacity: 1;
+}
+.modal-content{
+    border-radius: 10px;
+}
+.form-control-label {
+    font-size: .9rem;
+    color: #777;
+    padding: 7px 0;
+    text-align: right;
+}
+</style>
+</head>
+<body>
+        <div class="content-inner">
+            <!-- Page Header-->
+            <header class="page-header">
+                <div class="container-fluid">
+                    <h2 class="no-margin-bottom">员工基本信息</h2>
+                </div>
+            </header>
+            <!-- Dashboard Counts Section-->
+            <section class="dashboard-counts no-padding-bottom" style="padding-top: 10px;">
+                <!--iframe class="row bg-white has-shadow" src="tables.html" style="width:100%;height:260px;"/-->
+                <div class="container-fluid">
+
+                    <div class="row bg-white has-shadow" style="padding: 10px 0;">
+                            <form id="uploadForm" action="/employee/import" method="post" enctype="multipart/form-data" style="width:100%">
+
+                                <table class="table table-striped">
+                                    <thead>
+                                    <tr>
+                                    <td align="left" colspan="5">
+                                        <input id="file" name="file" type="file" class="btn btn-default"/>
+                                        <!--<input type="submit" value="提交"/>-->
+                                        <input type="button" id="upload" value="导入" class="btn btn-default"/>
+                                    </td>
+                                        <td colspan="2" align="right">
+                                            <input type="button" id="addEmployee" value="新增" class="btn btn-default"/>
+                                            <input type="button" id="editEmployee" value="编辑" class="btn btn-default"/>
+                                            <input type="button" id="delEmployee" value="删除" class="btn btn-default"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th></th>
+                                        <th>姓名</th>
+                                        <th>身份证号</th>
+                                        <th>手机号</th>
+                                        <th>卡备注</th>
+                                        <th>部门</th>
+                                        <th>职务</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody id="employeeList">
+                                    </tbody>
+                                </table>
+                            </form>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- 模态框（Modal） -->
+        <div class="my-modal" id="myModal" >
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title" id="myModalLabel">
+                            添加员工
+                        </h4>
+                        <button type="button" class="close" aria-hidden="true">
+                            &times;
+                        </button>
+
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group row">
+                            <label class="col-sm-3 form-control-label">姓名</label>
+                            <div class="col-sm-9">
+                                <input type="text" class="form-control" id="employeeName">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-sm-3 form-control-label">身份证号</label>
+                            <div class="col-sm-9">
+                                <input type="text" class="form-control" id="employeeCard">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-sm-3 form-control-label">手机号</label>
+                            <div class="col-sm-9">
+                                <input type="text" class="form-control" id="employeeMobile">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-sm-3 form-control-label">是否主卡</label>
+                            <div class="col-sm-9">
+                                <select name="account" class="form-control mb-3" id="isMainCard">
+                                    <option value="0">是</option>
+                                    <option value="1">否</option>
+                                </select>
+                            </div>
+                        </div>
+                        <!--<div class="form-group row">-->
+                            <!--<label class="col-sm-3 form-control-label">部门</label>-->
+                            <!--<div class="col-sm-9">-->
+                                <!--<select name="account" class="form-control mb-3" id="departmentSelect">-->
+                                <!--</select>-->
+                            <!--</div>-->
+                        <!--</div>-->
+                        <div class="form-group row">
+                            <label class="col-sm-3 form-control-label">职务</label>
+                            <div class="col-sm-9">
+                                <select name="account" class="form-control mb-3" id="employeeRole">
+                                    <option value="0">员工</option>
+                                    <option value="1">管理</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" id="closeModal">关闭</button>
+                        <button type="button" class="btn btn-primary" id="addSave">保存</button>
+                        <button type="button" class="btn btn-primary" id="editSave" style="display:none;">保存</button>
+                    </div>
+                </div><!-- /.modal-content -->
+            </div><!-- /.modal -->
+        </div>
+
+    <input type="hidden" id="hideEmployeeId">
+</body>
+</html>
